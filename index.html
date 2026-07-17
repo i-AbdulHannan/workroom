@@ -1,1 +1,1304 @@
-hello
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>workroom — One Room. Every Client. Zero WhatsApp Chaos.</title>
+    <meta name="description" content="workroom replaces WhatsApp-based client updates with one real-time dashboard for projects, files, approvals and payments.">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Three.js for 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
+    </script>
+
+    <style>
+        :root {
+            --green: #5AD363;
+            --green-dim: #3fa848;
+            --black: #000000;
+            --white: #FFFFFF;
+            --yellow: #FFD400;
+            --muted: #9aa39a;
+            --panel: #121412;
+            --line: #22261f;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--black);
+            color: var(--white);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        ::selection {
+            background: var(--green);
+            color: var(--black);
+        }
+
+        /* ============ PRELOADER ============ */
+        #preloader {
+            position: fixed;
+            inset: 0;
+            background: #000000;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+
+        #preloader.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .preloader-ring {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .preloader-ring svg {
+            width: 100%;
+            height: 100%;
+            animation: ringRotate 2s linear infinite;
+        }
+
+        @keyframes ringRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .preloader-ring .ring-track {
+            fill: none;
+            stroke: rgba(90, 211, 99, 0.15);
+            stroke-width: 3;
+        }
+
+        .preloader-ring .ring-fill {
+            fill: none;
+            stroke: var(--green);
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-dasharray: 283;
+            stroke-dashoffset: 283;
+            animation: ringFill 2.5s ease-in-out forwards;
+        }
+
+        @keyframes ringFill {
+            0% { stroke-dashoffset: 283; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        .preloader-logo-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preloader-logo-center img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            animation: logoBreathe 2s ease-in-out infinite;
+        }
+
+        @keyframes logoBreathe {
+            0%, 100% { transform: scale(0.9); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .preloader-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--green);
+            letter-spacing: 0.4em;
+            text-transform: lowercase;
+            animation: textGlow 1.8s ease-in-out infinite;
+        }
+
+        @keyframes textGlow {
+            0%, 100% { opacity: 0.4; text-shadow: 0 0 10px rgba(90,211,99,0); }
+            50% { opacity: 1; text-shadow: 0 0 30px rgba(90,211,99,0.6); }
+        }
+
+        .preloader-particles {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .preloader-particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: preloaderFloat 4s ease-in-out infinite;
+        }
+
+        @keyframes preloaderFloat {
+            0%, 100% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+            25% { opacity: 0.9; }
+            50% { transform: translateY(-60px) translateX(30px) scale(2); opacity: 0.5; }
+            75% { opacity: 0.2; }
+        }
+
+        /* ============ 3D CANVAS ============ */
+        #three-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* ============ MAIN CONTENT ============ */
+        .main-content {
+            position: relative;
+            z-index: 10;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .main-content.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .container-x {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ============ NAV ============ */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            backdrop-filter: blur(20px);
+            background: rgba(0, 0, 0, 0.65);
+            border-bottom: 1px solid rgba(90, 211, 99, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-img {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            object-fit: contain;
+            box-shadow: 0 0 20px rgba(90, 211, 99, 0.4);
+        }
+
+        .logo-text {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 17px;
+            letter-spacing: -0.02em;
+            color: var(--white);
+        }
+
+        .nav-link {
+            color: var(--muted);
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            padding: 4px 0;
+        }
+
+        .nav-link:hover {
+            color: var(--white);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 1.5px;
+            background: var(--green);
+            transition: width 0.35s ease;
+            border-radius: 2px;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--green);
+            color: var(--black);
+            font-weight: 600;
+            padding: 11px 26px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 25px rgba(90, 211, 99, 0.25);
+            position: relative;
+            overflow: hidden;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(90, 211, 99, 0.45);
+        }
+
+        .btn-primary:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.7s ease, height 0.7s ease;
+        }
+
+        .btn-primary:hover::after {
+            width: 350px;
+            height: 350px;
+        }
+
+        .btn-ghost {
+            border: 1px solid rgba(90, 211, 99, 0.35);
+            color: var(--white);
+            font-weight: 500;
+            padding: 11px 26px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            transition: all 0.35s ease;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--green);
+            color: var(--green);
+            box-shadow: 0 0 25px rgba(90, 211, 99, 0.2);
+        }
+
+        /* ============ HERO ============ */
+        .hero-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 100px;
+            padding-bottom: 80px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 18px;
+            border: 1px solid rgba(90, 211, 99, 0.35);
+            border-radius: 50px;
+            background: rgba(90, 211, 99, 0.04);
+            font-size: 11.5px;
+            font-weight: 500;
+            color: var(--green);
+            letter-spacing: 0.06em;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 28px;
+        }
+
+        .hero-badge-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: dotPulse 2s ease-in-out infinite;
+            box-shadow: 0 0 12px rgba(90, 211, 99, 0.7);
+        }
+
+        @keyframes dotPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.8); }
+        }
+
+        .hero-title {
+            font-size: clamp(42px, 6.5vw, 76px);
+            line-height: 1.06;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .hero-title .highlight-green {
+            color: var(--green);
+            position: relative;
+            display: inline-block;
+        }
+
+        .hero-title .highlight-green::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            left: 0;
+            width: 100%;
+            height: 7px;
+            background: rgba(90, 211, 99, 0.15);
+            border-radius: 6px;
+            z-index: -1;
+        }
+
+        .hero-desc {
+            color: var(--muted);
+            font-size: 16px;
+            line-height: 1.7;
+            max-width: 480px;
+        }
+
+        .tech-tags {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            color: var(--muted);
+            letter-spacing: 0.05em;
+        }
+
+        .tech-tags .dot-sep {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--line);
+        }
+
+        /* ============ SECTION HEADINGS ============ */
+        .section-eyebrow {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--green);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(28px, 4vw, 44px);
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+        }
+
+        /* ============ FEATURE CARDS ============ */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: linear-gradient(145deg, rgba(18, 20, 18, 0.85), rgba(10, 12, 10, 0.95));
+            border: 1px solid rgba(90, 211, 99, 0.15);
+            border-radius: 18px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(90, 211, 99, 0.5);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 50px rgba(90, 211, 99, 0.12);
+        }
+
+        .feature-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(90, 211, 99, 0.18), rgba(90, 211, 99, 0.04));
+            border: 1px solid rgba(90, 211, 99, 0.3);
+            margin-bottom: 18px;
+            color: var(--green);
+            transition: all 0.4s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .feature-card:hover .feature-card-icon {
+            transform: scale(1.15) rotate(-8deg);
+            box-shadow: 0 0 35px rgba(90, 211, 99, 0.4);
+            background: rgba(90, 211, 99, 0.25);
+        }
+
+        .feature-card-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
+            transition: all 0.5s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .feature-card-desc {
+            color: var(--muted);
+            font-size: 13.5px;
+            line-height: 1.6;
+            transition: all 0.5s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ============ VIP BLUR (PERMANENT — never reveals on hover) ============ */
+        .feature-card.vip-feature {
+            cursor: default;
+            position: relative;
+        }
+
+        .feature-card.vip-feature:hover {
+            transform: none;
+            border-color: rgba(90, 211, 99, 0.15);
+            box-shadow: none;
+        }
+
+        .feature-card.vip-feature .blur-content {
+            filter: blur(7px);
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /* VIP icon remains unblurred */
+        .feature-card.vip-feature .feature-card-icon {
+            filter: none !important;
+            border-color: rgba(255, 212, 0, 0.5) !important;
+            color: var(--yellow) !important;
+            background: linear-gradient(135deg, rgba(255, 212, 0, 0.18), rgba(255, 212, 0, 0.04)) !important;
+        }
+
+        .feature-card.vip-feature:hover .feature-card-icon {
+            transform: none !important;
+            box-shadow: none !important;
+            background: linear-gradient(135deg, rgba(255, 212, 0, 0.18), rgba(255, 212, 0, 0.04)) !important;
+        }
+
+        /* Locked overlay */
+        .vip-locked-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(0px);
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            pointer-events: none;
+        }
+
+        .vip-locked-content {
+            text-align: center;
+            z-index: 4;
+        }
+
+        .vip-locked-icon {
+            font-size: 32px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .vip-locked-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--yellow);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .vip-badge-corner {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            background: rgba(255, 212, 0, 0.12);
+            border: 1px solid rgba(255, 212, 0, 0.35);
+            color: var(--yellow);
+            font-size: 9.5px;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 4px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* ============ FOUNDER SECTION ============ */
+        .founder-card {
+            background: linear-gradient(145deg, rgba(18, 20, 18, 0.9), rgba(8, 10, 8, 0.95));
+            border: 1px solid rgba(90, 211, 99, 0.25);
+            border-radius: 24px;
+            padding: 40px;
+            transition: all 0.4s ease;
+        }
+
+        .founder-card:hover {
+            border-color: rgba(90, 211, 99, 0.5);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), 0 0 40px rgba(90, 211, 99, 0.1);
+        }
+
+        .founder-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--green);
+            box-shadow: 0 10px 30px rgba(90, 211, 99, 0.35);
+        }
+
+        /* ============ CTA ============ */
+        .cta-section {
+            background: linear-gradient(180deg, rgba(90, 211, 99, 0.06), transparent);
+            border: 1px solid rgba(90, 211, 99, 0.25);
+            border-radius: 28px;
+            padding: 70px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(90, 211, 99, 0.08) 0%, transparent 55%);
+            animation: rotateGlow 12s linear infinite;
+        }
+
+        @keyframes rotateGlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .cta-input {
+            background: #0a0b0a;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px 20px;
+            font-size: 14px;
+            color: var(--white);
+            outline: none;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .cta-input:focus {
+            border-color: var(--green);
+            box-shadow: 0 0 20px rgba(90, 211, 99, 0.15);
+        }
+
+        .cta-input::placeholder {
+            color: #555;
+        }
+
+        /* ============ FOOTER ============ */
+        footer {
+            border-top: 1px solid rgba(90, 211, 99, 0.2);
+            padding: 32px 0;
+        }
+
+        /* ============ MOBILE MENU ============ */
+        .mobile-menu {
+            background: rgba(0, 0, 0, 0.97);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(90, 211, 99, 0.25);
+        }
+
+        /* ============ SCROLL ANIMATIONS ============ */
+        .reveal {
+            opacity: 0;
+            transform: translateY(35px);
+            transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 768px) {
+            .hero-section {
+                padding-top: 130px;
+                min-height: auto;
+            }
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            .cta-section {
+                padding: 50px 20px;
+                border-radius: 20px;
+            }
+            .founder-card {
+                padding: 28px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 36px;
+            }
+            .container-x {
+                padding: 0 16px;
+            }
+            .feature-card {
+                padding: 22px;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #2a3a2a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--green-dim); }
+    </style>
+</head>
+<body>
+
+    <!-- ============ PRELOADER ============ -->
+    <div id="preloader">
+        <div class="preloader-particles" id="preloaderParticles"></div>
+        <div class="preloader-ring">
+            <svg viewBox="0 0 100 100">
+                <circle class="ring-track" cx="50" cy="50" r="45"/>
+                <circle class="ring-fill" cx="50" cy="50" r="45"/>
+            </svg>
+            <div class="preloader-logo-center">
+                <img src="workroom_icon_mark.png" alt="workroom logo">
+            </div>
+        </div>
+        <div class="preloader-text">workroom</div>
+    </div>
+
+    <!-- ============ 3D CANVAS ============ -->
+    <canvas id="three-canvas"></canvas>
+
+    <!-- ============ MAIN CONTENT ============ -->
+    <div class="main-content" id="mainContent">
+
+        <!-- NAV -->
+        <nav>
+            <div class="container-x flex items-center justify-between py-4">
+                <div class="logo-container">
+                    <img src="workroom_icon_mark.png" alt="workroom" class="logo-img">
+                    <span class="logo-text">workroom</span>
+                </div>
+
+                <div class="hidden lg:flex items-center gap-8">
+                    <a href="#features" class="nav-link">features</a>
+                    <a href="#how-it-works" class="nav-link">how it works</a>
+                    <a href="#founder" class="nav-link">founder</a>
+                    <a href="#cta" class="nav-link">early access</a>
+                </div>
+
+                <div class="hidden lg:flex items-center gap-3">
+                    <button class="btn-ghost">sign in</button>
+                    <button class="btn-primary">request early access</button>
+                </div>
+
+                <button id="menuToggle" class="lg:hidden text-white p-2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M3 12h18M3 18h18"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="mobileMenu" class="mobile-menu hidden lg:hidden">
+                <div class="container-x py-6 flex flex-col gap-5">
+                    <a href="#features" class="nav-link text-base">features</a>
+                    <a href="#how-it-works" class="nav-link text-base">how it works</a>
+                    <a href="#founder" class="nav-link text-base">founder</a>
+                    <a href="#cta" class="nav-link text-base">early access</a>
+                    <div class="flex flex-col gap-3 pt-5 border-t border-gray-800">
+                        <button class="btn-ghost w-full text-center">sign in</button>
+                        <button class="btn-primary w-full text-center">request early access</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- HERO -->
+        <section class="hero-section">
+            <div class="container-x">
+                <div class="max-w-4xl reveal">
+                    <div class="hero-badge">
+                        <span class="hero-badge-dot"></span>
+                        for agencies & freelancers
+                    </div>
+                    <h1 class="hero-title font-display mb-7">
+                        stop running your<br>agency out of<br>
+                        <span class="highlight-green">whatsapp groups.</span>
+                    </h1>
+                    <p class="hero-desc mb-10">
+                        every project, file, approval and payment — pulled out of scattered chats and into one calm, professional room your clients actually trust.
+                    </p>
+                    <div class="flex flex-wrap items-center gap-4 mb-12">
+                        <button class="btn-primary text-base">request early access →</button>
+                        <button class="btn-ghost text-base">see how it works ↓</button>
+                    </div>
+                    <div class="tech-tags">
+                        <span>no websockets needed</span>
+                        <span class="dot-sep"></span>
+                        <span>shared-hosting ready</span>
+                        <span class="dot-sep"></span>
+                        <span>built in pakistan</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(90,211,99,0.3),transparent);"></div>
+
+        <!-- FEATURES -->
+        <section id="features" class="py-28 md:py-36">
+            <div class="container-x">
+                <div class="text-center mb-16 reveal">
+                    <p class="section-eyebrow">everything you need</p>
+                    <h2 class="section-title mb-5">one room.<br>total clarity.</h2>
+                    <p class="text-[var(--muted)] max-w-lg mx-auto text-sm">some features are locked — sign up to unlock the full power of workroom.</p>
+                </div>
+
+                <div class="feature-grid">
+                    <!-- 1. REGULAR -->
+                    <div class="feature-card reveal">
+                        <div class="feature-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+                        </div>
+                        <h3 class="feature-card-title">live project status</h3>
+                        <p class="feature-card-desc">progress, milestones and health — on-track, at-risk or delayed — updated as work moves.</p>
+                    </div>
+
+                    <!-- 2. VIP LOCKED (permanently blurred) -->
+                    <div class="feature-card vip-feature reveal">
+                        <div class="feature-card-icon">✦</div>
+                        <div class="blur-content">
+                            <h3 class="feature-card-title">file version history</h3>
+                            <p class="feature-card-desc">every upload versioned and previewable — no more "final_final_v3.pdf"</p>
+                        </div>
+                        <div class="vip-locked-overlay">
+                            <div class="vip-locked-content">
+                                <span class="vip-locked-icon">🔒</span>
+                                <span class="vip-locked-text">unlock with early access</span>
+                            </div>
+                        </div>
+                        <div class="vip-badge-corner">locked</div>
+                    </div>
+
+                    <!-- 3. REGULAR -->
+                    <div class="feature-card reveal">
+                        <div class="feature-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21c-4.97 0-9-3.58-9-8s4.03-8 9-8 9 3.58 9 8c0 2.21-1 4.2-2.6 5.68L20 21l-4.6-1.6A9.9 9.9 0 0 1 12 21Z"/></svg>
+                        </div>
+                        <h3 class="feature-card-title">per-project chat</h3>
+                        <p class="feature-card-desc">real-time thread scoped to the project, with read receipts — instead of one endless group.</p>
+                    </div>
+
+                    <!-- 4. REGULAR -->
+                    <div class="feature-card reveal">
+                        <div class="feature-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10h18M7 15h4M3 6h18v12H3z"/></svg>
+                        </div>
+                        <h3 class="feature-card-title">transparent payments</h3>
+                        <p class="feature-card-desc">clients see exactly what's paid, due, and pending — no chasing screenshots of bank transfers.</p>
+                    </div>
+
+                    <!-- 5. VIP LOCKED -->
+                    <div class="feature-card vip-feature reveal">
+                        <div class="feature-card-icon">✦</div>
+                        <div class="blur-content">
+                            <h3 class="feature-card-title">client approvals on record</h3>
+                            <p class="feature-card-desc">deliverables get approved or sent back with comments — no more "i thought you said okay."</p>
+                        </div>
+                        <div class="vip-locked-overlay">
+                            <div class="vip-locked-content">
+                                <span class="vip-locked-icon">🔒</span>
+                                <span class="vip-locked-text">unlock with early access</span>
+                            </div>
+                        </div>
+                        <div class="vip-badge-corner">locked</div>
+                    </div>
+
+                    <!-- 6. REGULAR -->
+                    <div class="feature-card reveal">
+                        <div class="feature-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v4H4zM4 12h10v8H4zM16 12h4v8h-4z"/></svg>
+                        </div>
+                        <h3 class="feature-card-title">white-label ready</h3>
+                        <p class="feature-card-desc">your logo, your colors, your domain — clients see your brand, not ours.</p>
+                    </div>
+
+                    <!-- 7. REGULAR -->
+                    <div class="feature-card reveal">
+                        <div class="feature-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg>
+                        </div>
+                        <h3 class="feature-card-title">milestone tracking</h3>
+                        <p class="feature-card-desc">weighted milestones with auto-calculated progress — know exactly where every project stands.</p>
+                    </div>
+
+                    <!-- 8. VIP LOCKED -->
+                    <div class="feature-card vip-feature reveal">
+                        <div class="feature-card-icon">✦</div>
+                        <div class="blur-content">
+                            <h3 class="feature-card-title">daily updates</h3>
+                            <p class="feature-card-desc">post progress updates with images and videos — clients can comment directly.</p>
+                        </div>
+                        <div class="vip-locked-overlay">
+                            <div class="vip-locked-content">
+                                <span class="vip-locked-icon">🔒</span>
+                                <span class="vip-locked-text">unlock with early access</span>
+                            </div>
+                        </div>
+                        <div class="vip-badge-corner">locked</div>
+                    </div>
+
+                    <!-- 9. REGULAR -->
+                    <div class="feature-card reveal">
+                        <div class="feature-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
+                        </div>
+                        <h3 class="feature-card-title">smart notifications</h3>
+                        <p class="feature-card-desc">in-app bell + email alerts for messages, milestones, payments — never miss a beat.</p>
+                    </div>
+
+                    <!-- 10. VIP LOCKED -->
+                    <div class="feature-card vip-feature reveal">
+                        <div class="feature-card-icon">✦</div>
+                        <div class="blur-content">
+                            <h3 class="feature-card-title">client requests system</h3>
+                            <p class="feature-card-desc">clients submit change requests — you approve or reject with a reason.</p>
+                        </div>
+                        <div class="vip-locked-overlay">
+                            <div class="vip-locked-content">
+                                <span class="vip-locked-icon">🔒</span>
+                                <span class="vip-locked-text">unlock with early access</span>
+                            </div>
+                        </div>
+                        <div class="vip-badge-corner">locked</div>
+                    </div>
+
+                    <!-- 11. REGULAR -->
+                    <div class="feature-card reveal">
+                        <div class="feature-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/></svg>
+                        </div>
+                        <h3 class="feature-card-title">meeting scheduler</h3>
+                        <p class="feature-card-desc">schedule meetings, store notes, and view full meeting history per project.</p>
+                    </div>
+
+                    <!-- 12. VIP LOCKED -->
+                    <div class="feature-card vip-feature reveal">
+                        <div class="feature-card-icon">✦</div>
+                        <div class="blur-content">
+                            <h3 class="feature-card-title">secure delivery package</h3>
+                            <p class="feature-card-desc">final delivery with encrypted credentials — source code, apk, hosting details.</p>
+                        </div>
+                        <div class="vip-locked-overlay">
+                            <div class="vip-locked-content">
+                                <span class="vip-locked-icon">🔒</span>
+                                <span class="vip-locked-text">unlock with early access</span>
+                            </div>
+                        </div>
+                        <div class="vip-badge-corner">locked</div>
+                    </div>
+
+                    <!-- 13. REGULAR -->
+                    <div class="feature-card reveal">
+                        <div class="feature-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg>
+                        </div>
+                        <h3 class="feature-card-title">analytics & reports</h3>
+                        <p class="feature-card-desc">charts, progress %, productivity metrics — exportable as pdf reports.</p>
+                    </div>
+
+                    <!-- 14. REGULAR -->
+                    <div class="feature-card reveal">
+                        <div class="feature-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"/></svg>
+                        </div>
+                        <h3 class="feature-card-title">private notes</h3>
+                        <p class="feature-card-desc">agency-only internal notes per project — never visible to clients, enforced at query level.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HOW IT WORKS -->
+        <section id="how-it-works" class="py-28 md:py-36 border-t border-[var(--line)]">
+            <div class="container-x">
+                <div class="grid md:grid-cols-2 gap-16 items-center">
+                    <div class="reveal">
+                        <p class="section-eyebrow">built where you build</p>
+                        <h2 class="section-title mb-6">made for how pakistani agencies actually host, sell and get paid.</h2>
+                        <p class="text-[var(--muted)] leading-relaxed mb-8">
+                            no forced cloud lock-in, no per-seat pricing shock. workroom runs comfortably on ordinary shared hosting and cpanel setups, and never requires a paid third-party tool just to function.
+                        </p>
+                        <ul class="space-y-4">
+                            <li class="flex items-center gap-3 text-sm">
+                                <span class="w-2 h-2 rounded-full bg-[var(--green)]"></span>
+                                runs on standard shared hosting or a vps
+                            </li>
+                            <li class="flex items-center gap-3 text-sm">
+                                <span class="w-2 h-2 rounded-full bg-[var(--green)]"></span>
+                                no mandatory paid dependencies to go live
+                            </li>
+                            <li class="flex items-center gap-3 text-sm">
+                                <span class="w-2 h-2 rounded-full bg-[var(--green)]"></span>
+                                built with local payment habits in mind
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="reveal">
+                        <div class="bg-[var(--panel)] border border-[var(--line)] rounded-2xl p-8">
+                            <div class="flex items-center justify-between font-mono text-[11px] text-[var(--muted)] mb-5">
+                                <span>project health</span>
+                                <span>auto-calculated</span>
+                            </div>
+                            <div class="flex gap-3 flex-wrap mb-5">
+                                <span class="px-3 py-1.5 rounded-lg bg-[#5AD363]/15 text-[#5AD363] border border-[#5AD363]/30 text-[11px] font-mono font-bold">on-track</span>
+                                <span class="px-3 py-1.5 rounded-lg bg-[#FFD400]/15 text-[#FFD400] border border-[#FFD400]/30 text-[11px] font-mono font-bold">at-risk</span>
+                                <span class="px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 border border-red-500/30 text-[11px] font-mono font-bold">delayed</span>
+                            </div>
+                            <p class="text-[var(--muted)] text-sm">status updates itself from real progress against the deadline — your team can still step in and override it.</p>
+                        </div>
+                        <div class="mt-6 flex gap-8 font-mono text-[12px] text-[var(--muted)] overflow-hidden">
+                            <div style="display:flex;gap:32px;white-space:nowrap;animation:scrollTech 20s linear infinite;">
+                                <span>projects</span><span class="text-[var(--green)]">·</span>
+                                <span>milestones</span><span class="text-[var(--green)]">·</span>
+                                <span>files</span><span class="text-[var(--green)]">·</span>
+                                <span>payments</span><span class="text-[var(--green)]">·</span>
+                                <span>approvals</span><span class="text-[var(--green)]">·</span>
+                                <span>chat</span><span class="text-[var(--green)]">·</span>
+                                <span>projects</span><span class="text-[var(--green)]">·</span>
+                                <span>milestones</span><span class="text-[var(--green)]">·</span>
+                                <span>files</span><span class="text-[var(--green)]">·</span>
+                                <span>payments</span><span class="text-[var(--green)]">·</span>
+                                <span>approvals</span><span class="text-[var(--green)]">·</span>
+                                <span>chat</span><span class="text-[var(--green)]">·</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <style>
+                @keyframes scrollTech {
+                    from { transform: translateX(0); }
+                    to { transform: translateX(-50%); }
+                }
+            </style>
+        </section>
+
+        <!-- FOUNDER SECTION -->
+        <section id="founder" class="py-28 md:py-36 border-t border-[var(--line)]">
+            <div class="container-x">
+                <div class="max-w-3xl reveal mb-14">
+                    <p class="section-eyebrow">the builder</p>
+                    <h2 class="section-title mb-5">built by a freelancer who's lived the whatsapp chaos.</h2>
+                    <p class="text-[var(--muted)] text-base leading-relaxed">
+                        workroom wasn't born in a boardroom. it was built by someone who's spent years managing clients, invoices, and files the hard way — and decided to fix it.
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="founder-card reveal flex flex-col items-center text-center md:col-span-1">
+                        <img src="picofme.png" alt="Hannan" class="founder-avatar mb-5">
+                        <h3 class="font-display text-2xl font-semibold">Abdul Hannan</h3>
+                        <p class="text-[var(--green)] font-mono text-xs mt-2">Founder | AI-Integrated Product Engineer</p>
+                        <div class="flex items-center gap-2 mt-5 text-[var(--muted)] text-sm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span>Pakistan</span>
+                        </div>
+                    </div>
+
+                    <div class="founder-card reveal md:col-span-2">
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="font-display text-lg font-semibold mb-2">about the founder</h4>
+                                <p class="text-[var(--muted)] text-sm leading-relaxed">
+                                    Abdul Hannan is a AI-Integrated Product Engineer and freelancer from Pakistan who's spent years building products, managing client projects, and navigating the exact chaos that workroom fixes. From endless WhatsApp threads to scattered files and payment follow-ups — he's experienced it all firsthand. That lived experience is what drives workroom: a tool built not from assumptions, but from real pain points.
+                                </p>
+                            </div>
+                            <div>
+                                <h4 class="font-display text-lg font-semibold mb-2">what he builds</h4>
+                                <p class="text-[var(--muted)] text-sm leading-relaxed">
+                                    Abdul Hannan specializes in crafting clean, performant web applications using modern stacks. His portfolio spans SaaS tools, client dashboards, and developer utilities — all sharing a common thread: solving real problems with thoughtful, minimal design. He's passionate about shipping products that work well on modest infrastructure, keeping things practical for the Pakistani market.
+                                </p>
+                            </div>
+                            <div class="border-t border-[var(--line)] pt-5">
+                                <p class="text-[var(--muted)] text-sm italic leading-relaxed">
+                                    "I got tired of losing files in WhatsApp groups and chasing payment confirmations. I realized every freelancer in Pakistan faces the same thing. Instead of complaining, I decided to build the room I always wished I had — one link, one dashboard, zero chaos."
+                                </p>
+                                <p class="text-[var(--muted)] text-xs mt-3">— Abdul Hannan, Founder</p>
+                            </div>
+                        </div>
+                        <div class="mt-7 pt-5 border-t border-[var(--line)] flex flex-wrap items-center gap-4 text-xs font-mono text-[var(--muted)]">
+                            <span>🔗 hannanbuilds.vercel.app</span>
+                            <span class="w-1 h-1 rounded-full bg-[var(--line)] hidden sm:block"></span>
+                            <span>🛠️ AI-Integrated Product Engineer</span>
+                            <span class="w-1 h-1 rounded-full bg-[var(--line)] hidden sm:block"></span>
+                            <span>🇵🇰 Pakistan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section id="cta" class="py-28 md:py-36">
+            <div class="container-x">
+                <div class="cta-section text-center relative z-10 reveal">
+                    <p class="section-eyebrow text-center">early access</p>
+                    <h2 class="font-display text-3xl md:text-5xl font-semibold mb-6 max-w-2xl mx-auto leading-tight">
+                        give your clients a room,<br>not a group chat.
+                    </h2>
+                    <p class="text-[var(--muted)] max-w-md mx-auto mb-10 text-sm">
+                        workroom is opening to a limited number of agencies first. leave your email and we'll reach out when your spot is ready.
+                    </p>
+                    <form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto relative z-10" onsubmit="event.preventDefault(); this.querySelector('button').textContent="you're on the list ✓"; this.querySelector('button').disabled=true;">
+                        <input required type="email" placeholder="you@agency.com" class="cta-input">
+                        <button type="submit" class="btn-primary whitespace-nowrap text-base">request early access</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer>
+            <div class="container-x flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <img src="workroom_icon_mark.png" alt="workroom" class="w-7 h-7">
+                    <span class="font-display font-medium text-sm">workroom</span>
+                </div>
+                <p class="text-[var(--muted)] text-xs font-mono">© 2026 workroom. built by Abdul Hannan. all rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // ============ PRELOADER ============
+        function createPreloaderParticles() {
+            const container = document.getElementById('preloaderParticles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('preloader-particle');
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 4 + 's';
+                particle.style.animationDuration = (3 + Math.random() * 5) + 's';
+                particle.style.width = (2 + Math.random() * 5) + 'px';
+                particle.style.height = particle.style.width;
+                if (Math.random() > 0.7) {
+                    particle.style.background = '#FFD400';
+                }
+                container.appendChild(particle);
+            }
+        }
+        createPreloaderParticles();
+
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('preloader').classList.add('hidden');
+                document.getElementById('mainContent').classList.add('visible');
+            }, 2800);
+        });
+
+        // ============ 3D SCENE ============
+        const canvas = document.getElementById('three-canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        camera.position.z = 35;
+
+        const shapes = [];
+        const geometries = [
+            new THREE.IcosahedronGeometry(0.9, 0),
+            new THREE.OctahedronGeometry(0.75, 0),
+            new THREE.TetrahedronGeometry(0.65, 0),
+            new THREE.TorusGeometry(0.55, 0.18, 10, 14),
+            new THREE.TorusKnotGeometry(0.5, 0.15, 60, 10),
+        ];
+
+        for (let i = 0; i < 50; i++) {
+            const geo = geometries[Math.floor(Math.random() * geometries.length)];
+            const isYellow = Math.random() > 0.85;
+            const mat = new THREE.MeshBasicMaterial({
+                color: isYellow ? 0xFFD400 : (Math.random() > 0.6 ? 0x5AD363 : 0x3fa848),
+                wireframe: Math.random() > 0.45,
+                transparent: true,
+                opacity: 0.12 + Math.random() * 0.35,
+            });
+            const shape = new THREE.Mesh(geo, mat);
+            shape.position.x = (Math.random() - 0.5) * 55;
+            shape.position.y = (Math.random() - 0.5) * 55;
+            shape.position.z = (Math.random() - 0.5) * 25;
+            shape.rotation.x = Math.random() * Math.PI * 2;
+            shape.rotation.y = Math.random() * Math.PI * 2;
+            shape.userData = {
+                rx: (Math.random() - 0.5) * 0.012,
+                ry: (Math.random() - 0.5) * 0.012,
+                rz: (Math.random() - 0.5) * 0.006,
+                fs: 0.002 + Math.random() * 0.01,
+                fr: 1.5 + Math.random() * 10,
+                iy: shape.position.y,
+            };
+            shapes.push(shape);
+            scene.add(shape);
+        }
+
+        const pGeo = new THREE.BufferGeometry();
+        const pCount = 150;
+        const pPos = new Float32Array(pCount * 3);
+        for (let i = 0; i < pCount * 3; i += 3) {
+            pPos[i] = (Math.random() - 0.5) * 65;
+            pPos[i + 1] = (Math.random() - 0.5) * 65;
+            pPos[i + 2] = (Math.random() - 0.5) * 35;
+        }
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        const pMat = new THREE.PointsMaterial({
+            color: 0x5AD363,
+            size: 0.2,
+            transparent: true,
+            opacity: 0.5,
+        });
+        const particles = new THREE.Points(pGeo, pMat);
+        scene.add(particles);
+
+        const glowGeo = new THREE.SphereGeometry(18, 40, 40);
+        const glowMat = new THREE.MeshBasicMaterial({
+            color: 0x5AD363,
+            transparent: true,
+            opacity: 0.025,
+            side: THREE.BackSide,
+        });
+        const glow = new THREE.Mesh(glowGeo, glowMat);
+        scene.add(glow);
+
+        let mx = 0, my = 0;
+        document.addEventListener('mousemove', (e) => {
+            mx = (e.clientX / window.innerWidth - 0.5) * 2;
+            my = (e.clientY / window.innerHeight - 0.5) * 2;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = Date.now() * 0.001;
+            shapes.forEach(s => {
+                s.rotation.x += s.userData.rx;
+                s.rotation.y += s.userData.ry;
+                s.rotation.z += s.userData.rz;
+                s.position.y = s.userData.iy + Math.sin(t * s.userData.fs) * s.userData.fr;
+            });
+            particles.rotation.y += 0.0004;
+            particles.rotation.x += 0.00015;
+            glow.position.x += (mx * 6 - glow.position.x) * 0.015;
+            glow.position.y += (-my * 6 - glow.position.y) * 0.015;
+            camera.position.x += (mx * 4 - camera.position.x) * 0.015;
+            camera.position.y += (-my * 4 - camera.position.y) * 0.015;
+            camera.lookAt(scene.position);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ============ MOBILE MENU ============
+        document.getElementById('menuToggle').addEventListener('click', () => {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        });
+        document.querySelectorAll('#mobileMenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('mobileMenu').classList.add('hidden');
+            });
+        });
+
+        // ============ SCROLL REVEAL ============
+        const revealEls = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+        revealEls.forEach(el => observer.observe(el));
+        document.querySelector('.hero-section .reveal')?.classList.add('visible');
+    </script>
+</body>
+</html>
