@@ -141,6 +141,173 @@ button,input{font:inherit}
 
 .brand-glow{background:linear-gradient(135deg,var(--brand-green-light),var(--brand-green));}
 .brand-yellow{color:var(--acid);}
+
+/* ===== WORKROOM RESPONSIVE SYSTEM ===== */
+html,body{width:100%;max-width:100%;overflow-x:hidden}
+img,svg,video,canvas{max-width:100%}
+button,a,input{touch-action:manipulation}
+
+@media (min-width:1440px){
+  :root{--max:1320px}
+  .container{width:min(calc(100% - 64px),var(--max))}
+  .hero{padding-top:105px}
+  .hero-grid{gap:70px}
+  .hero h1{font-size:clamp(80px,7vw,112px)}
+  .scene{min-height:620px}
+  .dashboard-wrap{max-width:650px}
+  .section{padding:145px 0}
+}
+
+@media (min-width:1101px) and (max-width:1439px){
+  .hero-grid{gap:44px}
+  .scene{min-height:560px}
+  .dashboard-wrap{max-width:600px}
+}
+
+@media (max-width:1100px){
+  .container{width:min(calc(100% - 40px),1240px)}
+  .hero-grid{grid-template-columns:1fr;gap:35px}
+  .hero-copy{max-width:850px}
+  .scene{order:2;min-height:540px}
+  .dashboard-wrap{width:min(92vw,650px)}
+  .workflow{grid-template-columns:1fr;gap:42px}
+  .step-list{position:static}
+  .step-list .section-title{max-width:760px}
+  .flow-stage{min-height:570px}
+  .proof{grid-template-columns:1fr}
+  .evidence{grid-template-columns:repeat(2,1fr)}
+  .cross{grid-template-columns:repeat(2,1fr)}
+}
+
+@media (max-width:820px){
+  .container{width:calc(100% - 32px)}
+  .nav-inner{height:70px}
+  .nav-links{display:none}
+  .nav-actions{gap:8px}
+  .nav-actions .btn-ghost{display:none}
+  .hero{padding:65px 0 45px}
+  .hero h1{font-size:clamp(52px,10.5vw,82px);max-width:720px}
+  .hero p{font-size:17px;max-width:650px}
+  .scene{min-height:480px}
+  .dashboard-wrap{width:min(94vw,620px)}
+  .fc1{right:-4px;top:25px}
+  .fc2{left:-4px;bottom:24px}
+  .chaos{grid-template-columns:1fr}
+  .benefits{grid-template-columns:repeat(2,1fr)}
+  .section{padding:100px 0}
+  .section-title{font-size:clamp(44px,8vw,68px)}
+  .flow-ui{transform:none}
+  .flow-stage{min-height:520px}
+  .cta-card h2{font-size:clamp(48px,9vw,76px)}
+}
+
+@media (max-width:640px){
+  .container{width:calc(100% - 24px)}
+  .nav-inner{height:64px}
+  .logo{font-size:19px}
+  .logo-img{width:29px;height:29px}
+  .nav-actions .btn-primary{padding:10px 13px;font-size:11px}
+  .hero{padding:48px 0 34px}
+  .eyebrow{font-size:10px;padding:7px 9px}
+  .hero h1{font-size:clamp(48px,14vw,66px);line-height:.88;margin:18px 0 20px}
+  .hero p{font-size:15px;line-height:1.6}
+  .hero-actions{display:grid;grid-template-columns:1fr;gap:9px}
+  .hero-actions .btn{width:100%}
+  .hero-meta{gap:6px}
+  .meta-pill{font-size:10px;padding:6px 8px}
+  .scene{min-height:405px;margin-top:-5px}
+  .dashboard-wrap{width:115%;max-width:none;transform:rotateX(11deg) rotateY(-10deg) rotateZ(2deg) scale(.74)}
+  .dashboard{border-radius:19px}
+  .d-body{grid-template-columns:115px 1fr;min-height:350px}
+  .d-side{padding:10px}
+  .side-brand{font-size:11px;margin:5px 2px 13px}
+  .side-chip{font-size:9px;padding:8px 7px}
+  .d-main{padding:11px}
+  .d-main h3{font-size:17px}
+  .mini{padding:10px}
+  .mini strong{font-size:14px}
+  .timeline{padding:9px}
+  .tl{gap:7px;padding:6px 0}
+  .tl span{font-size:8px}
+  .tl small{font-size:7px}
+  .float-card{padding:9px 10px;border-radius:13px}
+  .fc1{right:-12px;top:16px}
+  .fc2{left:-12px;bottom:20px}
+  .fc-val{font-size:17px}
+  .fc-title,.fc-note{font-size:7px}
+  .orbit{width:290px;height:290px}
+  .marquee-track{font-size:9px;gap:22px}
+  .section{padding:76px 0}
+  .section-kicker{font-size:9px}
+  .section-title{font-size:clamp(40px,12vw,58px)}
+  .section-lead{font-size:14px}
+  .story-card{padding:22px;min-height:310px;border-radius:22px}
+  .story-card h3{font-size:22px}
+  .story-card p{font-size:12px}
+  .good .room-stack{grid-template-columns:1fr 1fr;left:18px;right:18px;bottom:18px}
+  .room-box{padding:11px}.room-box b{font-size:16px}.room-box span{font-size:8px}
+  .benefits{grid-template-columns:1fr;gap:10px;margin-top:36px}
+  .benefit{min-height:0;padding:20px;border-radius:19px}
+  .icon{margin-bottom:22px}
+  .center-cta{margin-top:26px}
+  .workflow{gap:28px}
+  .step h4{font-size:19px}
+  .step p{font-size:12px}
+  .flow-stage{padding:12px;min-height:460px;border-radius:21px}
+  .flow-ui{border-radius:15px}
+  .flow-content{grid-template-columns:1fr;padding:9px;gap:8px}
+  .flow-panel{min-height:108px;padding:11px}
+  .flow-panel strong{font-size:22px}
+  .flow-note{left:12px;right:12px;bottom:12px;font-size:9px;padding:9px 10px}
+  .proof-card{padding:22px;border-radius:22px}
+  .quote{font-size:19px}
+  .quote-mark{font-size:54px}
+  .evidence{grid-template-columns:1fr}
+  .evidence-card{padding:15px;border-radius:15px}
+  .compare{margin-top:30px;border-radius:17px}
+  .compare th,.compare td{padding:12px 13px;font-size:10px}
+  .reviews{grid-template-columns:1fr;margin-top:28px}
+  .review{padding:19px;border-radius:18px}
+  .cross{grid-template-columns:1fr;margin-top:30px}
+  .cross-card{min-height:190px;padding:19px;border-radius:19px}
+  .cross-card h4{margin-top:30px;font-size:17px}
+  .faq{margin-top:30px}
+  .faq-q{font-size:14px;padding:17px 0}
+  .faq-a{font-size:12px}
+  .faq-a div{padding-bottom:17px}
+  .final-cta{padding:85px 0 90px}
+  .cta-card{padding:29px 19px;border-radius:25px}
+  .cta-card h2{font-size:clamp(43px,12vw,60px)}
+  .cta-card p{font-size:14px}
+  .cta-form input,.cta-form .btn{padding:13px 15px}
+  .fine{font-size:9px}
+  .footer-inner{gap:10px}
+}
+
+@media (max-width:390px){
+  .container{width:calc(100% - 20px)}
+  .nav-actions .btn-primary{font-size:10px;padding:9px 10px}
+  .hero h1{font-size:46px}
+  .dashboard-wrap{transform:rotateX(10deg) rotateY(-8deg) rotateZ(1.5deg) scale(.66)}
+  .scene{min-height:365px}
+  .fc1{right:-3px}.fc2{left:-3px}
+  .section{padding:68px 0}
+  .section-title{font-size:38px}
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .reveal{opacity:1!important;transform:none!important}
+  .marquee-track{animation:none!important}
+}
+
+/* Safe bottom padding for phones with gesture/navigation areas */
+@supports (padding:max(0px)){
+  .final-cta{padding-bottom:max(90px,calc(70px + env(safe-area-inset-bottom)))}
+}
+
 </style>
 </head>
 <body>
@@ -258,7 +425,7 @@ button,input{font:inherit}
   <div class="section-kicker reveal">04 — proof</div>
   <h2 class="section-title reveal">Not another generic project-management tool.</h2>
   <div class="proof" style="margin-top:48px">
-    <article class="proof-card reveal"><div class="quote-mark">“</div><div class="quote">I got tired of losing files in WhatsApp groups and chasing payment confirmations. I decided to build the room I always wished I had—one link, one dashboard, zero chaos.</div><div class="person"><div class="avatar">AH</div><div><b>Abdul Hannan</b><span>Founder · AI-Integrated Product Engineer · Pakistan</span></div></div></article>
+    <article class="proof-card reveal"><div class="quote-mark">“</div><div class="quote">I got tired of losing files in WhatsApp groups and chasing payment confirmations. I decided to build the room I always wished I had—one link, one dashboard, zero chaos.</div><div class="person"><div class="avatar">AH</div><div><b>Abdul Hannan</b><span>Founder · AI-Integrated Product Engineer · Pakistan</span><a href="https://instagram.com/hannanbuilds" target="_blank" rel="noopener" style="display:inline-block;margin-top:4px;font-size:10px;color:#61C153">Instagram · @hannanbuilds ↗</a></div></div></article>
     <article class="proof-card reveal"><div class="section-kicker">built where you build</div><h3 style="font-size:34px;letter-spacing:-.05em;margin:0 0 12px">Practical infrastructure. <span style="color:#77736b">No theatre.</span></h3><p style="color:#858078;max-width:480px">Workroom is designed for standard shared hosting or a VPS, with no mandatory paid dependency just to get the product live.</p><div class="evidence"><div class="evidence-card"><b>Shared hosting</b><span>Works on ordinary hosting & cPanel setups.</span></div><div class="evidence-card"><b>No forced lock-in</b><span>Your infrastructure stays practical and familiar.</span></div><div class="evidence-card"><b>Local context</b><span>Built with Pakistani payment habits in mind.</span></div><div class="evidence-card"><b>White-label</b><span>Your logo, colors and domain can stay yours.</span></div></div></article>
   </div>
 </div>
@@ -343,7 +510,7 @@ button,input{font:inherit}
 </section>
 </main>
 
-<footer class="footer"><div class="container footer-inner"><div>© 2026 workroom. Built by Abdul Hannan.</div><div>Projects · Milestones · Files · Payments · Approvals · Chat</div></div></footer>
+<footer class="footer"><div class="container footer-inner"><div>© 2026 workroom. Built by Abdul Hannan · <a href="https://instagram.com/hannanbuilds" target="_blank" rel="noopener">@hannanbuilds ↗</a></div><div>Projects · Milestones · Files · Payments · Approvals · Chat</div></div></footer>
 
 <script>
 const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),{threshold:.12});
