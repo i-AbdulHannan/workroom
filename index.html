@@ -1,1304 +1,376 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>workroom — One Room. Every Client. Zero WhatsApp Chaos.</title>
-    <meta name="description" content="workroom replaces WhatsApp-based client updates with one real-time dashboard for projects, files, approvals and payments.">
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com">
-    </script>
-
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
-    <!-- Three.js for 3D -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
-    </script>
-
-    <style>
-        :root {
-            --green: #5AD363;
-            --green-dim: #3fa848;
-            --black: #000000;
-            --white: #FFFFFF;
-            --yellow: #FFD400;
-            --muted: #9aa39a;
-            --panel: #121412;
-            --line: #22261f;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        body {
-            background: var(--black);
-            color: var(--white);
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-        }
-
-        .font-display {
-            font-family: 'Space Grotesk', sans-serif;
-        }
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        ::selection {
-            background: var(--green);
-            color: var(--black);
-        }
-
-        /* ============ PRELOADER ============ */
-        #preloader {
-            position: fixed;
-            inset: 0;
-            background: #000000;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            transition: opacity 0.8s ease, visibility 0.8s ease;
-        }
-
-        #preloader.hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-
-        .preloader-ring {
-            width: 100px;
-            height: 100px;
-            position: relative;
-            margin-bottom: 30px;
-        }
-
-        .preloader-ring svg {
-            width: 100%;
-            height: 100%;
-            animation: ringRotate 2s linear infinite;
-        }
-
-        @keyframes ringRotate {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .preloader-ring .ring-track {
-            fill: none;
-            stroke: rgba(90, 211, 99, 0.15);
-            stroke-width: 3;
-        }
-
-        .preloader-ring .ring-fill {
-            fill: none;
-            stroke: var(--green);
-            stroke-width: 3;
-            stroke-linecap: round;
-            stroke-dasharray: 283;
-            stroke-dashoffset: 283;
-            animation: ringFill 2.5s ease-in-out forwards;
-        }
-
-        @keyframes ringFill {
-            0% { stroke-dashoffset: 283; }
-            100% { stroke-dashoffset: 0; }
-        }
-
-        .preloader-logo-center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .preloader-logo-center img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            animation: logoBreathe 2s ease-in-out infinite;
-        }
-
-        @keyframes logoBreathe {
-            0%, 100% { transform: scale(0.9); opacity: 0.7; }
-            50% { transform: scale(1.1); opacity: 1; }
-        }
-
-        .preloader-text {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: var(--green);
-            letter-spacing: 0.4em;
-            text-transform: lowercase;
-            animation: textGlow 1.8s ease-in-out infinite;
-        }
-
-        @keyframes textGlow {
-            0%, 100% { opacity: 0.4; text-shadow: 0 0 10px rgba(90,211,99,0); }
-            50% { opacity: 1; text-shadow: 0 0 30px rgba(90,211,99,0.6); }
-        }
-
-        .preloader-particles {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            overflow: hidden;
-        }
-
-        .preloader-particle {
-            position: absolute;
-            width: 3px;
-            height: 3px;
-            background: var(--green);
-            border-radius: 50%;
-            animation: preloaderFloat 4s ease-in-out infinite;
-        }
-
-        @keyframes preloaderFloat {
-            0%, 100% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
-            25% { opacity: 0.9; }
-            50% { transform: translateY(-60px) translateX(30px) scale(2); opacity: 0.5; }
-            75% { opacity: 0.2; }
-        }
-
-        /* ============ 3D CANVAS ============ */
-        #three-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        /* ============ MAIN CONTENT ============ */
-        .main-content {
-            position: relative;
-            z-index: 10;
-            opacity: 0;
-            transform: translateY(40px);
-            transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .main-content.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .container-x {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 24px;
-        }
-
-        /* ============ NAV ============ */
-        nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 50;
-            backdrop-filter: blur(20px);
-            background: rgba(0, 0, 0, 0.65);
-            border-bottom: 1px solid rgba(90, 211, 99, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logo-img {
-            width: 34px;
-            height: 34px;
-            border-radius: 8px;
-            object-fit: contain;
-            box-shadow: 0 0 20px rgba(90, 211, 99, 0.4);
-        }
-
-        .logo-text {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 600;
-            font-size: 17px;
-            letter-spacing: -0.02em;
-            color: var(--white);
-        }
-
-        .nav-link {
-            color: var(--muted);
-            font-size: 13.5px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            position: relative;
-            padding: 4px 0;
-        }
-
-        .nav-link:hover {
-            color: var(--white);
-        }
-
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 0;
-            height: 1.5px;
-            background: var(--green);
-            transition: width 0.35s ease;
-            border-radius: 2px;
-        }
-
-        .nav-link:hover::after {
-            width: 100%;
-        }
-
-        .btn-primary {
-            background: var(--green);
-            color: var(--black);
-            font-weight: 600;
-            padding: 11px 26px;
-            border-radius: 10px;
-            font-size: 13.5px;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 0 25px rgba(90, 211, 99, 0.25);
-            position: relative;
-            overflow: hidden;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(90, 211, 99, 0.45);
-        }
-
-        .btn-primary:active {
-            transform: translateY(-1px);
-        }
-
-        .btn-primary::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.25);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.7s ease, height 0.7s ease;
-        }
-
-        .btn-primary:hover::after {
-            width: 350px;
-            height: 350px;
-        }
-
-        .btn-ghost {
-            border: 1px solid rgba(90, 211, 99, 0.35);
-            color: var(--white);
-            font-weight: 500;
-            padding: 11px 26px;
-            border-radius: 10px;
-            font-size: 13.5px;
-            transition: all 0.35s ease;
-            background: transparent;
-            cursor: pointer;
-        }
-
-        .btn-ghost:hover {
-            border-color: var(--green);
-            color: var(--green);
-            box-shadow: 0 0 25px rgba(90, 211, 99, 0.2);
-        }
-
-        /* ============ HERO ============ */
-        .hero-section {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            padding-top: 100px;
-            padding-bottom: 80px;
-        }
-
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 7px 18px;
-            border: 1px solid rgba(90, 211, 99, 0.35);
-            border-radius: 50px;
-            background: rgba(90, 211, 99, 0.04);
-            font-size: 11.5px;
-            font-weight: 500;
-            color: var(--green);
-            letter-spacing: 0.06em;
-            font-family: 'JetBrains Mono', monospace;
-            margin-bottom: 28px;
-        }
-
-        .hero-badge-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--green);
-            animation: dotPulse 2s ease-in-out infinite;
-            box-shadow: 0 0 12px rgba(90, 211, 99, 0.7);
-        }
-
-        @keyframes dotPulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(1.8); }
-        }
-
-        .hero-title {
-            font-size: clamp(42px, 6.5vw, 76px);
-            line-height: 1.06;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-        }
-
-        .hero-title .highlight-green {
-            color: var(--green);
-            position: relative;
-            display: inline-block;
-        }
-
-        .hero-title .highlight-green::after {
-            content: '';
-            position: absolute;
-            bottom: 6px;
-            left: 0;
-            width: 100%;
-            height: 7px;
-            background: rgba(90, 211, 99, 0.15);
-            border-radius: 6px;
-            z-index: -1;
-        }
-
-        .hero-desc {
-            color: var(--muted);
-            font-size: 16px;
-            line-height: 1.7;
-            max-width: 480px;
-        }
-
-        .tech-tags {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10.5px;
-            color: var(--muted);
-            letter-spacing: 0.05em;
-        }
-
-        .tech-tags .dot-sep {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--line);
-        }
-
-        /* ============ SECTION HEADINGS ============ */
-        .section-eyebrow {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: var(--green);
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            margin-bottom: 16px;
-        }
-
-        .section-title {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: clamp(28px, 4vw, 44px);
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            line-height: 1.15;
-        }
-
-        /* ============ FEATURE CARDS ============ */
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            gap: 20px;
-        }
-
-        .feature-card {
-            background: linear-gradient(145deg, rgba(18, 20, 18, 0.85), rgba(10, 12, 10, 0.95));
-            border: 1px solid rgba(90, 211, 99, 0.15);
-            border-radius: 18px;
-            padding: 30px;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 200px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-6px);
-            border-color: rgba(90, 211, 99, 0.5);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 50px rgba(90, 211, 99, 0.12);
-        }
-
-        .feature-card-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, rgba(90, 211, 99, 0.18), rgba(90, 211, 99, 0.04));
-            border: 1px solid rgba(90, 211, 99, 0.3);
-            margin-bottom: 18px;
-            color: var(--green);
-            transition: all 0.4s ease;
-            position: relative;
-            z-index: 2;
-        }
-
-        .feature-card:hover .feature-card-icon {
-            transform: scale(1.15) rotate(-8deg);
-            box-shadow: 0 0 35px rgba(90, 211, 99, 0.4);
-            background: rgba(90, 211, 99, 0.25);
-        }
-
-        .feature-card-title {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            letter-spacing: -0.01em;
-            transition: all 0.5s ease;
-            position: relative;
-            z-index: 2;
-        }
-
-        .feature-card-desc {
-            color: var(--muted);
-            font-size: 13.5px;
-            line-height: 1.6;
-            transition: all 0.5s ease;
-            position: relative;
-            z-index: 2;
-        }
-
-        /* ============ VIP BLUR (PERMANENT — never reveals on hover) ============ */
-        .feature-card.vip-feature {
-            cursor: default;
-            position: relative;
-        }
-
-        .feature-card.vip-feature:hover {
-            transform: none;
-            border-color: rgba(90, 211, 99, 0.15);
-            box-shadow: none;
-        }
-
-        .feature-card.vip-feature .blur-content {
-            filter: blur(7px);
-            user-select: none;
-            pointer-events: none;
-        }
-
-        /* VIP icon remains unblurred */
-        .feature-card.vip-feature .feature-card-icon {
-            filter: none !important;
-            border-color: rgba(255, 212, 0, 0.5) !important;
-            color: var(--yellow) !important;
-            background: linear-gradient(135deg, rgba(255, 212, 0, 0.18), rgba(255, 212, 0, 0.04)) !important;
-        }
-
-        .feature-card.vip-feature:hover .feature-card-icon {
-            transform: none !important;
-            box-shadow: none !important;
-            background: linear-gradient(135deg, rgba(255, 212, 0, 0.18), rgba(255, 212, 0, 0.04)) !important;
-        }
-
-        /* Locked overlay */
-        .vip-locked-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.55);
-            backdrop-filter: blur(0px);
-            z-index: 3;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 18px;
-            pointer-events: none;
-        }
-
-        .vip-locked-content {
-            text-align: center;
-            z-index: 4;
-        }
-
-        .vip-locked-icon {
-            font-size: 32px;
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        .vip-locked-text {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: var(--yellow);
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-        }
-
-        .vip-badge-corner {
-            position: absolute;
-            top: 18px;
-            right: 18px;
-            background: rgba(255, 212, 0, 0.12);
-            border: 1px solid rgba(255, 212, 0, 0.35);
-            color: var(--yellow);
-            font-size: 9.5px;
-            font-family: 'JetBrains Mono', monospace;
-            padding: 4px 10px;
-            border-radius: 20px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            z-index: 5;
-            pointer-events: none;
-        }
-
-        /* ============ FOUNDER SECTION ============ */
-        .founder-card {
-            background: linear-gradient(145deg, rgba(18, 20, 18, 0.9), rgba(8, 10, 8, 0.95));
-            border: 1px solid rgba(90, 211, 99, 0.25);
-            border-radius: 24px;
-            padding: 40px;
-            transition: all 0.4s ease;
-        }
-
-        .founder-card:hover {
-            border-color: rgba(90, 211, 99, 0.5);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), 0 0 40px rgba(90, 211, 99, 0.1);
-        }
-
-        .founder-avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--green);
-            box-shadow: 0 10px 30px rgba(90, 211, 99, 0.35);
-        }
-
-        /* ============ CTA ============ */
-        .cta-section {
-            background: linear-gradient(180deg, rgba(90, 211, 99, 0.06), transparent);
-            border: 1px solid rgba(90, 211, 99, 0.25);
-            border-radius: 28px;
-            padding: 70px 40px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .cta-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at center, rgba(90, 211, 99, 0.08) 0%, transparent 55%);
-            animation: rotateGlow 12s linear infinite;
-        }
-
-        @keyframes rotateGlow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .cta-input {
-            background: #0a0b0a;
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 14px 20px;
-            font-size: 14px;
-            color: var(--white);
-            outline: none;
-            transition: all 0.3s ease;
-            flex: 1;
-        }
-
-        .cta-input:focus {
-            border-color: var(--green);
-            box-shadow: 0 0 20px rgba(90, 211, 99, 0.15);
-        }
-
-        .cta-input::placeholder {
-            color: #555;
-        }
-
-        /* ============ FOOTER ============ */
-        footer {
-            border-top: 1px solid rgba(90, 211, 99, 0.2);
-            padding: 32px 0;
-        }
-
-        /* ============ MOBILE MENU ============ */
-        .mobile-menu {
-            background: rgba(0, 0, 0, 0.97);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(90, 211, 99, 0.25);
-        }
-
-        /* ============ SCROLL ANIMATIONS ============ */
-        .reveal {
-            opacity: 0;
-            transform: translateY(35px);
-            transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .reveal.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* ============ RESPONSIVE ============ */
-        @media (max-width: 768px) {
-            .hero-section {
-                padding-top: 130px;
-                min-height: auto;
-            }
-            .feature-grid {
-                grid-template-columns: 1fr;
-            }
-            .cta-section {
-                padding: 50px 20px;
-                border-radius: 20px;
-            }
-            .founder-card {
-                padding: 28px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .hero-title {
-                font-size: 36px;
-            }
-            .container-x {
-                padding: 0 16px;
-            }
-            .feature-card {
-                padding: 22px;
-            }
-        }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: #2a3a2a; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--green-dim); }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0b0b">
+<title>workroom — One room. Total clarity.</title>
+<meta name="description" content="Workroom gives agencies and freelancers one calm, professional place for projects, files, approvals, payments, conversations, milestones, and client updates.">
+<style>
+:root{
+  --ink:#0a0a0a; --paper:#f4f1ea; --muted:#8e8a82; --line:rgba(255,255,255,.11);
+  --card:#121212; --card2:#181818; --white:#f8f6f1; --soft:#d8d4cc;
+  --acid:#FFD400; --brand-green:#4DAF50; --brand-green-light:#61C153; --brand-deep:#2F7D36; --shadow:0 40px 100px rgba(0,0,0,.45);
+  --radius:26px; --max:1240px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ink);color:var(--white);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit}
+::selection{background:var(--acid);color:#000}
+
+.noise,.grid,.glow{position:fixed;inset:0;pointer-events:none}
+.noise{z-index:50;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E")}
+.grid{z-index:-4;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:72px 72px;mask-image:linear-gradient(to bottom,transparent 0,#000 16%,#000 80%,transparent 100%)}
+.glow{z-index:-3;background:radial-gradient(circle at 60% 18%,rgba(97,193,83,.13),transparent 22%),radial-gradient(circle at 90% 58%,rgba(255,255,255,.07),transparent 18%),radial-gradient(circle at 8% 80%,rgba(255,255,255,.05),transparent 18%)}
+.container{width:min(calc(100% - 40px),var(--max));margin:auto}
+.nav{position:sticky;top:0;z-index:40;background:rgba(10,10,10,.7);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.06)}
+.nav-inner{height:78px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.04em;font-size:21px}
+.logo-img{width:32px;height:32px;object-fit:contain;border-radius:8px}.logo-mark{width:27px;height:27px;border:1px solid rgba(255,255,255,.4);border-radius:8px;display:grid;place-items:center;transform:rotate(45deg);overflow:hidden}
+.logo-mark:after{content:"";width:12px;height:12px;border-radius:3px;background:var(--acid)}
+.logo-mark span{transform:rotate(-45deg)}
+.nav-links{display:flex;gap:28px;color:#a9a49b;font-size:13px}
+.nav-links a:hover{color:#fff}
+.nav-actions{display:flex;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;border-radius:999px;padding:12px 17px;border:1px solid rgba(255,255,255,.12);transition:.25s ease;cursor:pointer}
+.btn-ghost{background:rgba(255,255,255,.03)}
+.btn-ghost:hover{border-color:rgba(255,255,255,.28);transform:translateY(-1px)}
+.btn-primary{background:var(--acid);color:#090909;border-color:var(--acid);box-shadow:0 0 0 0 rgba(255,212,0,.2),0 10px 30px rgba(97,193,83,.10)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 0 8px rgba(255,212,0,.07),0 16px 38px rgba(97,193,83,.14)}
+.btn-lg{padding:15px 21px;font-size:15px;font-weight:750}
+
+.hero{padding:84px 0 62px;position:relative}
+.hero-grid{display:grid;grid-template-columns:1.04fr .96fr;gap:52px;align-items:center}
+.eyebrow{display:inline-flex;gap:8px;align-items:center;padding:8px 11px;border:1px solid rgba(255,255,255,.11);border-radius:999px;color:#c7c2b9;font-size:12px;background:rgba(255,255,255,.025)}
+.eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--acid);box-shadow:0 0 16px var(--acid)}
+.hero h1{font-size:clamp(58px,8vw,100px);line-height:.9;letter-spacing:-.07em;margin:22px 0 25px;max-width:840px}
+.hero h1 span{display:block;color:#807b73}
+.hero p{max-width:640px;font-size:18px;color:#b7b2a9}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 18px}
+.hero-meta{display:flex;gap:10px;flex-wrap:wrap;color:#87837b;font-size:12px}
+.meta-pill{border:1px solid rgba(255,255,255,.08);padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.02)}
+
+.scene{perspective:1600px;min-height:560px;display:grid;place-items:center;position:relative}
+.orbit{position:absolute;width:480px;height:480px;border:1px solid rgba(255,255,255,.09);border-radius:50%;transform:rotateX(66deg) rotateZ(18deg);box-shadow:0 0 70px rgba(97,193,83,.10)}
+.orbit:before,.orbit:after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(255,212,0,.16);inset:42px;transform:rotateZ(35deg)}
+.orbit:after{inset:88px;border-color:rgba(255,255,255,.07)}
+.dashboard-wrap{width:min(100%,620px);transform-style:preserve-3d;transform:rotateX(18deg) rotateY(-18deg) rotateZ(4deg);transition:transform .25s ease;position:relative}
+.dashboard{position:relative;background:linear-gradient(145deg,#1b1b1b,#0f0f0f);border:1px solid rgba(255,255,255,.15);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}
+.dashboard:before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(255,255,255,.08),transparent 22%,transparent 72%,rgba(255,212,0,.07))}
+.d-top{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.d-dots{display:flex;gap:6px}.d-dots i{width:7px;height:7px;border-radius:50%;background:#5b5852}
+.d-title{font-size:10px;color:#817c73;letter-spacing:.1em;text-transform:uppercase}
+.d-body{display:grid;grid-template-columns:165px 1fr;min-height:430px}
+.d-side{padding:15px;border-right:1px solid rgba(255,255,255,.08);background:#0d0d0d}
+.side-brand{font-weight:800;letter-spacing:-.04em;margin:7px 4px 20px}
+.side-chip{display:flex;gap:9px;align-items:center;padding:9px 10px;border-radius:10px;color:#9d988f;font-size:11px;margin-bottom:4px}
+.side-chip.active{background:#191919;color:#f7f5ef}
+.side-chip b{width:7px;height:7px;border-radius:2px;background:#56524b}.side-chip.active b{background:var(--acid)}
+.d-main{padding:18px}
+.d-row{display:flex;justify-content:space-between;gap:12px;align-items:end}.d-main h3{margin:0;font-size:23px;letter-spacing:-.05em}.d-main .tiny{font-size:9px;color:#77736c}
+.progress{height:8px;border-radius:99px;background:#202020;overflow:hidden;margin:12px 0 17px}.progress i{display:block;height:100%;width:74%;background:var(--acid);box-shadow:0 0 20px rgba(97,193,83,.24)}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.mini{background:#141414;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:13px}
+.mini .label{font-size:9px;color:#77736c;text-transform:uppercase;letter-spacing:.08em}.mini strong{display:block;margin-top:5px;font-size:17px;letter-spacing:-.03em}
+.status{display:inline-flex;align-items:center;gap:7px;font-size:10px;color:#dcd8d0;padding:5px 7px;border-radius:999px;background:#1a1a1a}.status i{width:5px;height:5px;background:var(--acid);border-radius:50%}
+.timeline{margin-top:10px;padding:13px;background:#141414;border:1px solid rgba(255,255,255,.07);border-radius:14px}.tl{display:flex;gap:10px;align-items:flex-start;padding:8px 0}.tl+.tl{border-top:1px solid rgba(255,255,255,.06)}.tl-dot{width:9px;height:9px;border-radius:50%;background:#5d5952;margin-top:4px}.tl-dot.good{background:var(--acid);box-shadow:0 0 10px rgba(97,193,83,.24)}.tl span{display:block;font-size:10px;color:#aaa59d}.tl small{display:block;color:#6f6b64;font-size:8px;margin-top:2px}
+
+.float-card{position:absolute;background:rgba(20,20,20,.82);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(16px);border-radius:18px;padding:13px 15px;box-shadow:0 22px 50px rgba(0,0,0,.35);font-size:11px}
+.fc1{right:-18px;top:38px;transform:translateZ(70px)}.fc2{left:-20px;bottom:48px;transform:translateZ(95px)}
+.fc-title{color:#77736b;text-transform:uppercase;letter-spacing:.08em;font-size:8px}.fc-val{font-size:22px;font-weight:750;letter-spacing:-.05em;margin-top:4px}.fc-note{color:#aaa59d;font-size:9px}
+
+.marquee{border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);overflow:hidden}
+.marquee-track{display:flex;gap:34px;white-space:nowrap;padding:13px 0;width:max-content;animation:scroll 26s linear infinite;color:#6c685f;font-size:11px;text-transform:uppercase;letter-spacing:.16em}
+.marquee strong{color:#c5c0b7}@keyframes scroll{to{transform:translateX(-50%)}}
+
+.section{padding:120px 0;position:relative}
+.section-kicker{color:#858078;text-transform:uppercase;letter-spacing:.16em;font-size:11px;margin-bottom:14px}
+.section-title{font-size:clamp(42px,6.6vw,82px);line-height:.95;letter-spacing:-.065em;max-width:940px;margin:0}
+.section-title em{font-style:normal;color:#747067}
+.section-lead{max-width:700px;color:#9e9991;font-size:17px;margin:20px 0 0}
+
+.chaos{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:55px}
+.story-card{border:1px solid rgba(255,255,255,.09);border-radius:28px;padding:28px;min-height:380px;position:relative;overflow:hidden}
+.story-card.bad{background:linear-gradient(140deg,#171717,#0c0c0c)}.story-card.good{background:linear-gradient(140deg,#f6f2e7,#e4edd9);color:#0a0a0a;border-color:rgba(0,0,0,.1)}
+.story-card h3{font-size:25px;letter-spacing:-.04em;margin:0 0 8px}.story-card p{color:#a5a098;max-width:520px}.good p{color:#5f5b54}
+.chat-stack{position:absolute;right:24px;bottom:24px;left:24px;display:flex;flex-direction:column;gap:8px}.bubble{padding:10px 12px;border-radius:13px;background:#1b1b1b;border:1px solid rgba(255,255,255,.08);max-width:75%;font-size:11px;color:#a9a49b}.bubble:nth-child(2){align-self:flex-end;background:#232323}.good .room-stack{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:absolute;left:24px;right:24px;bottom:24px}.room-box{padding:15px;border:1px solid rgba(0,0,0,.09);border-radius:15px;background:rgba(255,255,255,.35)}.room-box b{font-size:18px;letter-spacing:-.04em;display:block}.room-box span{font-size:9px;color:#6b665f;text-transform:uppercase;letter-spacing:.09em}
+
+.benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:55px}
+.benefit{background:linear-gradient(150deg,#151515,#0d0d0d);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:24px;min-height:250px;position:relative;overflow:hidden;transition:.3s}.benefit:hover{transform:translateY(-5px);border-color:rgba(97,193,83,.24);box-shadow:0 30px 70px rgba(0,0,0,.22)}
+.benefit:before{content:"";position:absolute;inset:auto -30px -50px auto;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(97,193,83,.14),transparent 60%)}
+.icon{width:35px;height:35px;border-radius:10px;border:1px solid rgba(255,255,255,.1);display:grid;place-items:center;color:var(--acid);margin-bottom:34px}.icon svg{width:16px;height:16px}.benefit h4{margin:0 0 8px;font-size:19px;letter-spacing:-.03em}.benefit p{color:#858179;margin:0;font-size:13px}
+.center-cta{text-align:center;margin-top:34px}
+
+.workflow{display:grid;grid-template-columns:.75fr 1.25fr;gap:36px;align-items:start}.step-list{position:sticky;top:115px}.step{padding:18px 0;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer}.step-no{font-size:10px;color:#6f6b63;display:block;margin-bottom:8px}.step h4{margin:0;font-size:22px;letter-spacing:-.04em}.step p{display:none;color:#8e8980;font-size:13px;margin:8px 0 0}.step.active h4{color:var(--acid)}.step.active p{display:block}
+.flow-stage{position:relative;min-height:610px;border:1px solid rgba(255,255,255,.08);border-radius:28px;background:linear-gradient(145deg,#171717,#0e0e0e);overflow:hidden;padding:22px}.flow-stage:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 70% 18%,rgba(217,255,90,.1),transparent 24%),linear-gradient(90deg,transparent 48%,rgba(255,255,255,.03) 49%,transparent 50%)}
+.flow-ui{position:relative;border:1px solid rgba(255,255,255,.08);border-radius:20px;overflow:hidden;background:#0b0b0b;box-shadow:0 50px 110px rgba(0,0,0,.5);transform:translateY(22px) rotateX(7deg)}
+.flow-head{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;justify-content:space-between;align-items:center}.flow-head b{letter-spacing:-.03em}.flow-head span{font-size:9px;color:#747067}
+.flow-content{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px}.flow-panel{border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;background:#131313;min-height:140px}.flow-panel h5{margin:0 0 8px;font-size:11px;color:#7d786f}.flow-panel strong{font-size:28px;letter-spacing:-.06em}.flow-panel .list{margin-top:14px;display:grid;gap:7px}.flow-panel .list div{padding:8px 9px;border:1px solid rgba(255,255,255,.06);border-radius:9px;font-size:10px;color:#a49f96;display:flex;justify-content:space-between}.flow-panel .list i{width:6px;height:6px;border-radius:50%;background:var(--acid);align-self:center}
+.flow-note{position:absolute;right:24px;bottom:23px;padding:11px 13px;border:1px solid rgba(255,212,0,.18);color:#f0ede5;background:rgba(20,20,20,.85);backdrop-filter:blur(12px);border-radius:13px;font-size:11px}
+
+.proof{display:grid;grid-template-columns:1fr 1fr;gap:16px}.proof-card{border:1px solid rgba(255,255,255,.08);border-radius:28px;padding:30px;background:linear-gradient(140deg,#151515,#0e0e0e)}.quote{font-size:24px;letter-spacing:-.03em;line-height:1.25;max-width:720px}.quote-mark{font-size:70px;line-height:.7;color:var(--acid);opacity:.7}.person{display:flex;align-items:center;gap:12px;margin-top:26px}.avatar{width:39px;height:39px;border-radius:50%;background:linear-gradient(135deg,#343434,#101010);border:1px solid rgba(255,255,255,.12);display:grid;place-items:center;font-size:11px}.person b{font-size:12px}.person span{display:block;color:#77736b;font-size:10px}
+.evidence{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:28px}.evidence-card{border:1px solid rgba(255,255,255,.08);border-radius:19px;padding:20px;background:#111}.evidence-card b{display:block;font-size:13px;margin-bottom:8px}.evidence-card span{font-size:11px;color:#7f7a72}
+
+.compare{overflow:auto;margin-top:45px;border:1px solid rgba(255,255,255,.08);border-radius:24px}.compare table{width:100%;min-width:740px;border-collapse:collapse}.compare th,.compare td{text-align:left;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px}.compare th{color:#a49f97;background:#111}.compare td:first-child{color:#8c877f}.compare td:last-child{color:#eee}.tick{color:var(--acid);font-weight:800}
+.reviews{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:42px}.review{padding:25px;border-radius:22px;border:1px dashed rgba(255,255,255,.13);background:rgba(255,255,255,.02)}.stars{letter-spacing:.16em;color:#FFD400;font-size:11px}.review p{color:#8b867e;font-size:14px}.review b{font-size:11px}.review span{color:#68645d;font-size:10px}
+
+.cross{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:42px}.cross-card{border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:22px;background:linear-gradient(145deg,#151515,#0e0e0e);min-height:230px;transition:.28s}.cross-card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.18)}.cross-card .num{color:#5e5a54;font-size:10px}.cross-card h4{font-size:18px;letter-spacing:-.03em;margin:42px 0 8px}.cross-card p{margin:0;color:#817c73;font-size:12px}
+
+.faq{max-width:940px;margin:45px auto 0}.faq-item{border-top:1px solid rgba(255,255,255,.1)}.faq-item:last-child{border-bottom:1px solid rgba(255,255,255,.1)}.faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:0;color:#f6f3ec;padding:21px 0;text-align:left;cursor:pointer;font-size:17px;letter-spacing:-.02em}.faq-q span{color:#746f67;transition:.2s}.faq-a{max-height:0;overflow:hidden;color:#838078;font-size:13px;transition:max-height .3s ease}.faq-a div{padding:0 36px 22px 0}.faq-item.open .faq-a{max-height:220px}.faq-item.open .faq-q span{transform:rotate(45deg);color:var(--acid)}
+
+.final-cta{padding:130px 0 145px}.cta-card{position:relative;overflow:hidden;border-radius:34px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(140deg,#efebe3,#d7d1c6);color:#0c0c0c;padding:60px}.cta-card:after{content:"";position:absolute;width:520px;height:520px;right:-180px;top:-260px;border-radius:50%;background:radial-gradient(circle,rgba(217,255,90,.48),transparent 62%)}.cta-card h2{font-size:clamp(48px,7vw,90px);letter-spacing:-.07em;line-height:.9;max-width:850px;margin:0;position:relative;z-index:1}.cta-card p{color:#5f5a52;max-width:620px;position:relative;z-index:1;font-size:16px}.cta-form{display:flex;gap:10px;max-width:650px;position:relative;z-index:1}.cta-form input{flex:1;min-width:0;border-radius:999px;border:1px solid rgba(0,0,0,.14);background:rgba(255,255,255,.55);padding:15px 17px;color:#090909;outline:none}.cta-form input::placeholder{color:#777169}.cta-form .btn-primary{background:#0c0c0c;color:#fff;border-color:#0c0c0c}.fine{font-size:10px;color:#6d685f;margin-top:10px;position:relative;z-index:1}
+
+.footer{padding:24px 0 35px;border-top:1px solid rgba(255,255,255,.07);color:#666159;font-size:10px}.footer-inner{display:flex;justify-content:space-between;gap:20px}.footer a:hover{color:#fff}
+
+.reveal{opacity:0;transform:translateY(25px);transition:opacity .7s ease,transform .7s ease}.reveal.in{opacity:1;transform:none}
+.tilt{transition:transform .25s ease}
+@media (max-width:1000px){
+  .hero-grid,.workflow,.proof{grid-template-columns:1fr}.scene{min-height:520px;order:-1}
+  .benefits{grid-template-columns:repeat(2,1fr)}.cross,.evidence{grid-template-columns:repeat(2,1fr)}
+  .step-list{position:static}.nav-links{display:none}
+}
+@media (max-width:680px){
+  .container{width:min(calc(100% - 24px),var(--max))}.nav-inner{height:68px}.nav-actions .btn-ghost{display:none}
+  .hero{padding-top:55px}.hero h1{font-size:54px}.hero p{font-size:16px}
+  .scene{min-height:410px}.dashboard-wrap{transform:rotateX(12deg) rotateY(-12deg) rotateZ(2deg) scale(.82)}.orbit{width:330px;height:330px}.fc1{right:-7px}.fc2{left:-6px}
+  .chaos,.benefits,.reviews,.cross,.evidence{grid-template-columns:1fr}.story-card{min-height:330px}
+  .section{padding:90px 0}.section-title{font-size:46px}.flow-stage{min-height:500px}.flow-content{grid-template-columns:1fr}.cta-card{padding:34px 24px}.cta-form{flex-direction:column}.cta-form .btn{width:100%}.footer-inner{flex-direction:column}
+}
+
+.brand-glow{background:linear-gradient(135deg,var(--brand-green-light),var(--brand-green));}
+.brand-yellow{color:var(--acid);}
+</style>
 </head>
 <body>
+<div class="noise"></div><div class="grid"></div><div class="glow"></div>
 
-    <!-- ============ PRELOADER ============ -->
-    <div id="preloader">
-        <div class="preloader-particles" id="preloaderParticles"></div>
-        <div class="preloader-ring">
-            <svg viewBox="0 0 100 100">
-                <circle class="ring-track" cx="50" cy="50" r="45"/>
-                <circle class="ring-fill" cx="50" cy="50" r="45"/>
-            </svg>
-            <div class="preloader-logo-center">
-                <img src="workroom_icon_mark.png" alt="workroom logo">
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="logo" href="#"><img class="logo-img" src="workroom-logo.png" alt="Workroom logo">workroom</a>
+    <div class="nav-links">
+      <a href="#why">Why workroom</a><a href="#features">Features</a><a href="#proof">Proof</a><a href="#faq">FAQ</a>
+    </div>
+    <div class="nav-actions"><a class="btn btn-ghost" href="#faq">Sign in</a><a class="btn btn-primary" href="#early-access">Request early access</a></div>
+  </div>
+</nav>
+
+<main>
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="reveal">
+      <div class="eyebrow"><i></i> for agencies & freelancers</div>
+      <h1>Stop managing client work in <span>WhatsApp.</span></h1>
+      <p>Give every project a room of its own. Workroom brings files, approvals, payments, conversations, milestones, and client updates into one calm, professional space.</p>
+      <div class="hero-actions"><a class="btn btn-primary btn-lg" href="#early-access">Request Early Access <span>↗</span></a><a class="btn btn-ghost btn-lg" href="#why">See the room <span>↓</span></a></div>
+      <div class="hero-meta"><span class="meta-pill">shared-hosting ready</span><span class="meta-pill">no forced cloud lock-in</span><span class="meta-pill">built in Pakistan</span></div>
+    </div>
+    <div class="scene reveal">
+      <div class="orbit"></div>
+      <div class="dashboard-wrap tilt" id="dash">
+        <div class="dashboard">
+          <div class="d-top"><div class="d-dots"><i></i><i></i><i></i></div><div class="d-title">workroom / project</div><div class="status"><i></i> on track</div></div>
+          <div class="d-body">
+            <aside class="d-side"><div class="side-brand"><img src="workroom-logo.png" alt="" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:6px;border-radius:6px">workroom</div><div class="side-chip active"><b></b> Overview</div><div class="side-chip"><b></b> Milestones</div><div class="side-chip"><b></b> Files</div><div class="side-chip"><b></b> Payments</div><div class="side-chip"><b></b> Approvals</div><div class="side-chip"><b></b> Chat</div><div class="side-chip"><b></b> Delivery</div></aside>
+            <div class="d-main">
+              <div class="d-row"><div><div class="tiny">PROJECT</div><h3>Northstar Website</h3></div><div class="tiny">Jun 18 → Jul 08</div></div>
+              <div class="progress"><i></i></div>
+              <div class="cards">
+                <div class="mini"><div class="label">Progress</div><strong>74%</strong></div>
+                <div class="mini"><div class="label">Payment</div><strong>₨ 180k</strong></div>
+                <div class="mini"><div class="label">Approvals</div><strong>08 / 09</strong></div>
+                <div class="mini"><div class="label">Milestones</div><strong>05 / 06</strong></div>
+              </div>
+              <div class="timeline">
+                <div class="tl"><div class="tl-dot good"></div><div><span>Homepage approved</span><small>Client approved 18 min ago</small></div></div>
+                <div class="tl"><div class="tl-dot good"></div><div><span>Brand assets delivered</span><small>12 files · 4 versions tracked</small></div></div>
+                <div class="tl"><div class="tl-dot"></div><div><span>Final QA</span><small>Next milestone · Jul 05</small></div></div>
+              </div>
             </div>
+          </div>
         </div>
-        <div class="preloader-text">workroom</div>
+        <div class="float-card fc1"><div class="fc-title">client approval</div><div class="fc-val">Approved ✓</div><div class="fc-note">Homepage · v08</div></div>
+        <div class="float-card fc2"><div class="fc-title">project health</div><div class="fc-val">On track</div><div class="fc-note">Auto-calculated from progress</div></div>
+      </div>
     </div>
+  </div>
+</section>
 
-    <!-- ============ 3D CANVAS ============ -->
-    <canvas id="three-canvas"></canvas>
+<div class="marquee"><div class="marquee-track"><strong>projects</strong> · milestones · files · payments · approvals · chat · delivery · reports · white-label · projects · milestones · files · payments · approvals · chat · delivery · reports · white-label ·</div></div>
 
-    <!-- ============ MAIN CONTENT ============ -->
-    <div class="main-content" id="mainContent">
+<section class="section" id="why">
+<div class="container">
+  <div class="section-kicker reveal">01 — the problem</div>
+  <h2 class="section-title reveal">Your work deserves <em>more</em> than a group chat.</h2>
+  <p class="section-lead reveal">When everything lives in WhatsApp, important things get buried. Workroom gives the project one place to live—so you and your client always know what is happening, what is next, and what still needs attention.</p>
+  <div class="chaos">
+    <article class="story-card bad reveal"><div class="section-kicker">the usual setup</div><h3>One endless thread.</h3><p>A file gets lost. An approval gets forgotten. A payment needs a follow-up. A simple client question turns into a 40-message thread.</p><div class="chat-stack"><div class="bubble">"Which one was the final logo?"</div><div class="bubble">"Sent it again 😅"</div><div class="bubble">"Can you resend the invoice?"</div></div></article>
+    <article class="story-card good reveal"><div class="section-kicker">the workroom</div><h3>One room. Total clarity.</h3><p>Every project gets its own calm, structured space for the conversations, decisions, files and moments that actually move the work forward.</p><div class="room-stack"><div class="room-box"><b>74%</b><span>project progress</span></div><div class="room-box"><b>8/9</b><span>approvals</span></div><div class="room-box"><b>₨180k</b><span>paid</span></div><div class="room-box"><b>01</b><span>next milestone</span></div></div></article>
+  </div>
+</div>
+</section>
 
-        <!-- NAV -->
-        <nav>
-            <div class="container-x flex items-center justify-between py-4">
-                <div class="logo-container">
-                    <img src="workroom_icon_mark.png" alt="workroom" class="logo-img">
-                    <span class="logo-text">workroom</span>
-                </div>
+<section class="section" id="features">
+<div class="container">
+  <div class="section-kicker reveal">02 — the difference</div>
+  <h2 class="section-title reveal">What changes when <em>everything has a place?</em></h2>
+  <div class="benefits">
+    <article class="benefit reveal"><div class="icon">⌁</div><h4>Know exactly where every project stands.</h4><p>Track milestones, progress and project health in one place—on-track, at-risk or delayed.</p></article>
+    <article class="benefit reveal"><div class="icon">▱</div><h4>Stop sending “final_final_v3.pdf”.</h4><p>Uploads keep their version history and can be previewed, so everyone knows which version is current.</p></article>
+    <article class="benefit reveal"><div class="icon">◌</div><h4>Keep every conversation attached to the work.</h4><p>Each project gets its own real-time conversation thread with read receipts.</p></article>
+    <article class="benefit reveal"><div class="icon">✓</div><h4>Make approvals clear and traceable.</h4><p>Clients approve a deliverable or send it back with comments—no more “I thought you said okay.”</p></article>
+    <article class="benefit reveal"><div class="icon">₨</div><h4>Make payments easier to understand.</h4><p>Clients can see what is paid, due and pending—without payment screenshots back and forth.</p></article>
+    <article class="benefit reveal"><div class="icon">↗</div><h4>Give clients somewhere professional to check in.</h4><p>Post updates, share media, schedule meetings, keep notes and preserve the project history.</p></article>
+  </div>
+  <div class="center-cta reveal"><a class="btn btn-primary btn-lg" href="#early-access">Request Early Access ↗</a></div>
+</div>
+</section>
 
-                <div class="hidden lg:flex items-center gap-8">
-                    <a href="#features" class="nav-link">features</a>
-                    <a href="#how-it-works" class="nav-link">how it works</a>
-                    <a href="#founder" class="nav-link">founder</a>
-                    <a href="#cta" class="nav-link">early access</a>
-                </div>
-
-                <div class="hidden lg:flex items-center gap-3">
-                    <button class="btn-ghost">sign in</button>
-                    <button class="btn-primary">request early access</button>
-                </div>
-
-                <button id="menuToggle" class="lg:hidden text-white p-2">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18M3 12h18M3 18h18"/>
-                    </svg>
-                </button>
-            </div>
-
-            <div id="mobileMenu" class="mobile-menu hidden lg:hidden">
-                <div class="container-x py-6 flex flex-col gap-5">
-                    <a href="#features" class="nav-link text-base">features</a>
-                    <a href="#how-it-works" class="nav-link text-base">how it works</a>
-                    <a href="#founder" class="nav-link text-base">founder</a>
-                    <a href="#cta" class="nav-link text-base">early access</a>
-                    <div class="flex flex-col gap-3 pt-5 border-t border-gray-800">
-                        <button class="btn-ghost w-full text-center">sign in</button>
-                        <button class="btn-primary w-full text-center">request early access</button>
-                    </div>
-                </div>
-            </div>
-        </nav>
-
-        <!-- HERO -->
-        <section class="hero-section">
-            <div class="container-x">
-                <div class="max-w-4xl reveal">
-                    <div class="hero-badge">
-                        <span class="hero-badge-dot"></span>
-                        for agencies & freelancers
-                    </div>
-                    <h1 class="hero-title font-display mb-7">
-                        stop running your<br>agency out of<br>
-                        <span class="highlight-green">whatsapp groups.</span>
-                    </h1>
-                    <p class="hero-desc mb-10">
-                        every project, file, approval and payment — pulled out of scattered chats and into one calm, professional room your clients actually trust.
-                    </p>
-                    <div class="flex flex-wrap items-center gap-4 mb-12">
-                        <button class="btn-primary text-base">request early access →</button>
-                        <button class="btn-ghost text-base">see how it works ↓</button>
-                    </div>
-                    <div class="tech-tags">
-                        <span>no websockets needed</span>
-                        <span class="dot-sep"></span>
-                        <span>shared-hosting ready</span>
-                        <span class="dot-sep"></span>
-                        <span>built in pakistan</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(90,211,99,0.3),transparent);"></div>
-
-        <!-- FEATURES -->
-        <section id="features" class="py-28 md:py-36">
-            <div class="container-x">
-                <div class="text-center mb-16 reveal">
-                    <p class="section-eyebrow">everything you need</p>
-                    <h2 class="section-title mb-5">one room.<br>total clarity.</h2>
-                    <p class="text-[var(--muted)] max-w-lg mx-auto text-sm">some features are locked — sign up to unlock the full power of workroom.</p>
-                </div>
-
-                <div class="feature-grid">
-                    <!-- 1. REGULAR -->
-                    <div class="feature-card reveal">
-                        <div class="feature-card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
-                        </div>
-                        <h3 class="feature-card-title">live project status</h3>
-                        <p class="feature-card-desc">progress, milestones and health — on-track, at-risk or delayed — updated as work moves.</p>
-                    </div>
-
-                    <!-- 2. VIP LOCKED (permanently blurred) -->
-                    <div class="feature-card vip-feature reveal">
-                        <div class="feature-card-icon">✦</div>
-                        <div class="blur-content">
-                            <h3 class="feature-card-title">file version history</h3>
-                            <p class="feature-card-desc">every upload versioned and previewable — no more "final_final_v3.pdf"</p>
-                        </div>
-                        <div class="vip-locked-overlay">
-                            <div class="vip-locked-content">
-                                <span class="vip-locked-icon">🔒</span>
-                                <span class="vip-locked-text">unlock with early access</span>
-                            </div>
-                        </div>
-                        <div class="vip-badge-corner">locked</div>
-                    </div>
-
-                    <!-- 3. REGULAR -->
-                    <div class="feature-card reveal">
-                        <div class="feature-card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21c-4.97 0-9-3.58-9-8s4.03-8 9-8 9 3.58 9 8c0 2.21-1 4.2-2.6 5.68L20 21l-4.6-1.6A9.9 9.9 0 0 1 12 21Z"/></svg>
-                        </div>
-                        <h3 class="feature-card-title">per-project chat</h3>
-                        <p class="feature-card-desc">real-time thread scoped to the project, with read receipts — instead of one endless group.</p>
-                    </div>
-
-                    <!-- 4. REGULAR -->
-                    <div class="feature-card reveal">
-                        <div class="feature-card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10h18M7 15h4M3 6h18v12H3z"/></svg>
-                        </div>
-                        <h3 class="feature-card-title">transparent payments</h3>
-                        <p class="feature-card-desc">clients see exactly what's paid, due, and pending — no chasing screenshots of bank transfers.</p>
-                    </div>
-
-                    <!-- 5. VIP LOCKED -->
-                    <div class="feature-card vip-feature reveal">
-                        <div class="feature-card-icon">✦</div>
-                        <div class="blur-content">
-                            <h3 class="feature-card-title">client approvals on record</h3>
-                            <p class="feature-card-desc">deliverables get approved or sent back with comments — no more "i thought you said okay."</p>
-                        </div>
-                        <div class="vip-locked-overlay">
-                            <div class="vip-locked-content">
-                                <span class="vip-locked-icon">🔒</span>
-                                <span class="vip-locked-text">unlock with early access</span>
-                            </div>
-                        </div>
-                        <div class="vip-badge-corner">locked</div>
-                    </div>
-
-                    <!-- 6. REGULAR -->
-                    <div class="feature-card reveal">
-                        <div class="feature-card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v4H4zM4 12h10v8H4zM16 12h4v8h-4z"/></svg>
-                        </div>
-                        <h3 class="feature-card-title">white-label ready</h3>
-                        <p class="feature-card-desc">your logo, your colors, your domain — clients see your brand, not ours.</p>
-                    </div>
-
-                    <!-- 7. REGULAR -->
-                    <div class="feature-card reveal">
-                        <div class="feature-card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg>
-                        </div>
-                        <h3 class="feature-card-title">milestone tracking</h3>
-                        <p class="feature-card-desc">weighted milestones with auto-calculated progress — know exactly where every project stands.</p>
-                    </div>
-
-                    <!-- 8. VIP LOCKED -->
-                    <div class="feature-card vip-feature reveal">
-                        <div class="feature-card-icon">✦</div>
-                        <div class="blur-content">
-                            <h3 class="feature-card-title">daily updates</h3>
-                            <p class="feature-card-desc">post progress updates with images and videos — clients can comment directly.</p>
-                        </div>
-                        <div class="vip-locked-overlay">
-                            <div class="vip-locked-content">
-                                <span class="vip-locked-icon">🔒</span>
-                                <span class="vip-locked-text">unlock with early access</span>
-                            </div>
-                        </div>
-                        <div class="vip-badge-corner">locked</div>
-                    </div>
-
-                    <!-- 9. REGULAR -->
-                    <div class="feature-card reveal">
-                        <div class="feature-card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
-                        </div>
-                        <h3 class="feature-card-title">smart notifications</h3>
-                        <p class="feature-card-desc">in-app bell + email alerts for messages, milestones, payments — never miss a beat.</p>
-                    </div>
-
-                    <!-- 10. VIP LOCKED -->
-                    <div class="feature-card vip-feature reveal">
-                        <div class="feature-card-icon">✦</div>
-                        <div class="blur-content">
-                            <h3 class="feature-card-title">client requests system</h3>
-                            <p class="feature-card-desc">clients submit change requests — you approve or reject with a reason.</p>
-                        </div>
-                        <div class="vip-locked-overlay">
-                            <div class="vip-locked-content">
-                                <span class="vip-locked-icon">🔒</span>
-                                <span class="vip-locked-text">unlock with early access</span>
-                            </div>
-                        </div>
-                        <div class="vip-badge-corner">locked</div>
-                    </div>
-
-                    <!-- 11. REGULAR -->
-                    <div class="feature-card reveal">
-                        <div class="feature-card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/></svg>
-                        </div>
-                        <h3 class="feature-card-title">meeting scheduler</h3>
-                        <p class="feature-card-desc">schedule meetings, store notes, and view full meeting history per project.</p>
-                    </div>
-
-                    <!-- 12. VIP LOCKED -->
-                    <div class="feature-card vip-feature reveal">
-                        <div class="feature-card-icon">✦</div>
-                        <div class="blur-content">
-                            <h3 class="feature-card-title">secure delivery package</h3>
-                            <p class="feature-card-desc">final delivery with encrypted credentials — source code, apk, hosting details.</p>
-                        </div>
-                        <div class="vip-locked-overlay">
-                            <div class="vip-locked-content">
-                                <span class="vip-locked-icon">🔒</span>
-                                <span class="vip-locked-text">unlock with early access</span>
-                            </div>
-                        </div>
-                        <div class="vip-badge-corner">locked</div>
-                    </div>
-
-                    <!-- 13. REGULAR -->
-                    <div class="feature-card reveal">
-                        <div class="feature-card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg>
-                        </div>
-                        <h3 class="feature-card-title">analytics & reports</h3>
-                        <p class="feature-card-desc">charts, progress %, productivity metrics — exportable as pdf reports.</p>
-                    </div>
-
-                    <!-- 14. REGULAR -->
-                    <div class="feature-card reveal">
-                        <div class="feature-card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"/></svg>
-                        </div>
-                        <h3 class="feature-card-title">private notes</h3>
-                        <p class="feature-card-desc">agency-only internal notes per project — never visible to clients, enforced at query level.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- HOW IT WORKS -->
-        <section id="how-it-works" class="py-28 md:py-36 border-t border-[var(--line)]">
-            <div class="container-x">
-                <div class="grid md:grid-cols-2 gap-16 items-center">
-                    <div class="reveal">
-                        <p class="section-eyebrow">built where you build</p>
-                        <h2 class="section-title mb-6">made for how pakistani agencies actually host, sell and get paid.</h2>
-                        <p class="text-[var(--muted)] leading-relaxed mb-8">
-                            no forced cloud lock-in, no per-seat pricing shock. workroom runs comfortably on ordinary shared hosting and cpanel setups, and never requires a paid third-party tool just to function.
-                        </p>
-                        <ul class="space-y-4">
-                            <li class="flex items-center gap-3 text-sm">
-                                <span class="w-2 h-2 rounded-full bg-[var(--green)]"></span>
-                                runs on standard shared hosting or a vps
-                            </li>
-                            <li class="flex items-center gap-3 text-sm">
-                                <span class="w-2 h-2 rounded-full bg-[var(--green)]"></span>
-                                no mandatory paid dependencies to go live
-                            </li>
-                            <li class="flex items-center gap-3 text-sm">
-                                <span class="w-2 h-2 rounded-full bg-[var(--green)]"></span>
-                                built with local payment habits in mind
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="reveal">
-                        <div class="bg-[var(--panel)] border border-[var(--line)] rounded-2xl p-8">
-                            <div class="flex items-center justify-between font-mono text-[11px] text-[var(--muted)] mb-5">
-                                <span>project health</span>
-                                <span>auto-calculated</span>
-                            </div>
-                            <div class="flex gap-3 flex-wrap mb-5">
-                                <span class="px-3 py-1.5 rounded-lg bg-[#5AD363]/15 text-[#5AD363] border border-[#5AD363]/30 text-[11px] font-mono font-bold">on-track</span>
-                                <span class="px-3 py-1.5 rounded-lg bg-[#FFD400]/15 text-[#FFD400] border border-[#FFD400]/30 text-[11px] font-mono font-bold">at-risk</span>
-                                <span class="px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 border border-red-500/30 text-[11px] font-mono font-bold">delayed</span>
-                            </div>
-                            <p class="text-[var(--muted)] text-sm">status updates itself from real progress against the deadline — your team can still step in and override it.</p>
-                        </div>
-                        <div class="mt-6 flex gap-8 font-mono text-[12px] text-[var(--muted)] overflow-hidden">
-                            <div style="display:flex;gap:32px;white-space:nowrap;animation:scrollTech 20s linear infinite;">
-                                <span>projects</span><span class="text-[var(--green)]">·</span>
-                                <span>milestones</span><span class="text-[var(--green)]">·</span>
-                                <span>files</span><span class="text-[var(--green)]">·</span>
-                                <span>payments</span><span class="text-[var(--green)]">·</span>
-                                <span>approvals</span><span class="text-[var(--green)]">·</span>
-                                <span>chat</span><span class="text-[var(--green)]">·</span>
-                                <span>projects</span><span class="text-[var(--green)]">·</span>
-                                <span>milestones</span><span class="text-[var(--green)]">·</span>
-                                <span>files</span><span class="text-[var(--green)]">·</span>
-                                <span>payments</span><span class="text-[var(--green)]">·</span>
-                                <span>approvals</span><span class="text-[var(--green)]">·</span>
-                                <span>chat</span><span class="text-[var(--green)]">·</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <style>
-                @keyframes scrollTech {
-                    from { transform: translateX(0); }
-                    to { transform: translateX(-50%); }
-                }
-            </style>
-        </section>
-
-        <!-- FOUNDER SECTION -->
-        <section id="founder" class="py-28 md:py-36 border-t border-[var(--line)]">
-            <div class="container-x">
-                <div class="max-w-3xl reveal mb-14">
-                    <p class="section-eyebrow">the builder</p>
-                    <h2 class="section-title mb-5">built by a freelancer who's lived the whatsapp chaos.</h2>
-                    <p class="text-[var(--muted)] text-base leading-relaxed">
-                        workroom wasn't born in a boardroom. it was built by someone who's spent years managing clients, invoices, and files the hard way — and decided to fix it.
-                    </p>
-                </div>
-
-                <div class="grid md:grid-cols-3 gap-8">
-                    <div class="founder-card reveal flex flex-col items-center text-center md:col-span-1">
-                        <img src="picofme.png" alt="Hannan" class="founder-avatar mb-5">
-                        <h3 class="font-display text-2xl font-semibold">Abdul Hannan</h3>
-                        <p class="text-[var(--green)] font-mono text-xs mt-2">Founder | AI-Integrated Product Engineer</p>
-                        <div class="flex items-center gap-2 mt-5 text-[var(--muted)] text-sm">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            <span>Pakistan</span>
-                        </div>
-                    </div>
-
-                    <div class="founder-card reveal md:col-span-2">
-                        <div class="space-y-6">
-                            <div>
-                                <h4 class="font-display text-lg font-semibold mb-2">about the founder</h4>
-                                <p class="text-[var(--muted)] text-sm leading-relaxed">
-                                    Abdul Hannan is a AI-Integrated Product Engineer and freelancer from Pakistan who's spent years building products, managing client projects, and navigating the exact chaos that workroom fixes. From endless WhatsApp threads to scattered files and payment follow-ups — he's experienced it all firsthand. That lived experience is what drives workroom: a tool built not from assumptions, but from real pain points.
-                                </p>
-                            </div>
-                            <div>
-                                <h4 class="font-display text-lg font-semibold mb-2">what he builds</h4>
-                                <p class="text-[var(--muted)] text-sm leading-relaxed">
-                                    Abdul Hannan specializes in crafting clean, performant web applications using modern stacks. His portfolio spans SaaS tools, client dashboards, and developer utilities — all sharing a common thread: solving real problems with thoughtful, minimal design. He's passionate about shipping products that work well on modest infrastructure, keeping things practical for the Pakistani market.
-                                </p>
-                            </div>
-                            <div class="border-t border-[var(--line)] pt-5">
-                                <p class="text-[var(--muted)] text-sm italic leading-relaxed">
-                                    "I got tired of losing files in WhatsApp groups and chasing payment confirmations. I realized every freelancer in Pakistan faces the same thing. Instead of complaining, I decided to build the room I always wished I had — one link, one dashboard, zero chaos."
-                                </p>
-                                <p class="text-[var(--muted)] text-xs mt-3">— Abdul Hannan, Founder</p>
-                            </div>
-                        </div>
-                        <div class="mt-7 pt-5 border-t border-[var(--line)] flex flex-wrap items-center gap-4 text-xs font-mono text-[var(--muted)]">
-                            <span>🔗 hannanbuilds.vercel.app</span>
-                            <span class="w-1 h-1 rounded-full bg-[var(--line)] hidden sm:block"></span>
-                            <span>🛠️ AI-Integrated Product Engineer</span>
-                            <span class="w-1 h-1 rounded-full bg-[var(--line)] hidden sm:block"></span>
-                            <span>🇵🇰 Pakistan</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- CTA -->
-        <section id="cta" class="py-28 md:py-36">
-            <div class="container-x">
-                <div class="cta-section text-center relative z-10 reveal">
-                    <p class="section-eyebrow text-center">early access</p>
-                    <h2 class="font-display text-3xl md:text-5xl font-semibold mb-6 max-w-2xl mx-auto leading-tight">
-                        give your clients a room,<br>not a group chat.
-                    </h2>
-                    <p class="text-[var(--muted)] max-w-md mx-auto mb-10 text-sm">
-                        workroom is opening to a limited number of agencies first. leave your email and we'll reach out when your spot is ready.
-                    </p>
-                    <form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto relative z-10" onsubmit="event.preventDefault(); this.querySelector('button').textContent="you're on the list ✓"; this.querySelector('button').disabled=true;">
-                        <input required type="email" placeholder="you@agency.com" class="cta-input">
-                        <button type="submit" class="btn-primary whitespace-nowrap text-base">request early access</button>
-                    </form>
-                </div>
-            </div>
-        </section>
-
-        <!-- FOOTER -->
-        <footer>
-            <div class="container-x flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-3">
-                    <img src="workroom_icon_mark.png" alt="workroom" class="w-7 h-7">
-                    <span class="font-display font-medium text-sm">workroom</span>
-                </div>
-                <p class="text-[var(--muted)] text-xs font-mono">© 2026 workroom. built by Abdul Hannan. all rights reserved.</p>
-            </div>
-        </footer>
+<section class="section">
+<div class="container workflow">
+  <div class="step-list reveal">
+    <div class="section-kicker">03 — the room</div>
+    <h2 class="section-title" style="font-size:58px">Built around how real projects <em>move.</em></h2>
+    <div class="step active" data-step="0"><span class="step-no">01</span><h4>Projects</h4><p>Everything starts from the project. One shared room becomes the source of truth.</p></div>
+    <div class="step" data-step="1"><span class="step-no">02</span><h4>Milestones</h4><p>Break work into meaningful stages and see progress at a glance.</p></div>
+    <div class="step" data-step="2"><span class="step-no">03</span><h4>Files + approvals</h4><p>Keep versions together and make decisions traceable.</p></div>
+    <div class="step" data-step="3"><span class="step-no">04</span><h4>Payments + chat</h4><p>Keep the conversation and financial status attached to the project.</p></div>
+    <div class="step" data-step="4"><span class="step-no">05</span><h4>Delivery</h4><p>Finish professionally with a dedicated delivery package for the final handoff.</p></div>
+  </div>
+  <div class="flow-stage reveal">
+    <div class="flow-ui">
+      <div class="flow-head"><b id="flowName">Northstar / Overview</b><span>live project room</span></div>
+      <div class="flow-content">
+        <div class="flow-panel"><h5>PROJECT HEALTH</h5><strong id="flowMetric">ON TRACK</strong><div class="progress"><i style="width:74%"></i></div><span style="font-size:10px;color:#77736b">Auto-calculated from progress vs deadline</span></div>
+        <div class="flow-panel"><h5>ACTIVITY</h5><strong>08</strong><div class="list"><div>Homepage <i></i></div><div>Brand system <i></i></div><div>Final QA <span style="color:#666">next</span></div></div></div>
+        <div class="flow-panel"><h5>PAYMENTS</h5><strong>₨180k</strong><div class="list"><div>Paid <span style="color:#bcb7af">₨180k</span></div><div>Pending <span style="color:#bcb7af">₨60k</span></div></div></div>
+        <div class="flow-panel"><h5>CLIENT</h5><strong>02</strong><div class="list"><div>Unread <span style="color:#bcb7af">02</span></div><div>Approvals <span style="color:#bcb7af">08/09</span></div></div></div>
+      </div>
     </div>
+    <div class="flow-note">One project · one room · one clear next step.</div>
+  </div>
+</div>
+</section>
 
-    <script>
-        // ============ PRELOADER ============
-        function createPreloaderParticles() {
-            const container = document.getElementById('preloaderParticles');
-            for (let i = 0; i < 30; i++) {
-                const particle = document.createElement('div');
-                particle.classList.add('preloader-particle');
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.top = Math.random() * 100 + '%';
-                particle.style.animationDelay = Math.random() * 4 + 's';
-                particle.style.animationDuration = (3 + Math.random() * 5) + 's';
-                particle.style.width = (2 + Math.random() * 5) + 'px';
-                particle.style.height = particle.style.width;
-                if (Math.random() > 0.7) {
-                    particle.style.background = '#FFD400';
-                }
-                container.appendChild(particle);
-            }
-        }
-        createPreloaderParticles();
+<section class="section" id="proof">
+<div class="container">
+  <div class="section-kicker reveal">04 — proof</div>
+  <h2 class="section-title reveal">Not another generic project-management tool.</h2>
+  <div class="proof" style="margin-top:48px">
+    <article class="proof-card reveal"><div class="quote-mark">“</div><div class="quote">I got tired of losing files in WhatsApp groups and chasing payment confirmations. I decided to build the room I always wished I had—one link, one dashboard, zero chaos.</div><div class="person"><div class="avatar">AH</div><div><b>Abdul Hannan</b><span>Founder · AI-Integrated Product Engineer · Pakistan</span></div></div></article>
+    <article class="proof-card reveal"><div class="section-kicker">built where you build</div><h3 style="font-size:34px;letter-spacing:-.05em;margin:0 0 12px">Practical infrastructure. <span style="color:#77736b">No theatre.</span></h3><p style="color:#858078;max-width:480px">Workroom is designed for standard shared hosting or a VPS, with no mandatory paid dependency just to get the product live.</p><div class="evidence"><div class="evidence-card"><b>Shared hosting</b><span>Works on ordinary hosting & cPanel setups.</span></div><div class="evidence-card"><b>No forced lock-in</b><span>Your infrastructure stays practical and familiar.</span></div><div class="evidence-card"><b>Local context</b><span>Built with Pakistani payment habits in mind.</span></div><div class="evidence-card"><b>White-label</b><span>Your logo, colors and domain can stay yours.</span></div></div></article>
+  </div>
+</div>
+</section>
 
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                document.getElementById('preloader').classList.add('hidden');
-                document.getElementById('mainContent').classList.add('visible');
-            }, 2800);
-        });
+<section class="section">
+<div class="container">
+  <div class="section-kicker reveal">05 — decision</div>
+  <h2 class="section-title reveal">The difference isn't <em>more features.</em><br>It's less friction.</h2>
+  <div class="compare reveal">
+    <table>
+      <thead><tr><th>THE USUAL SETUP</th><th>WHATSAPP + SCATTERED TOOLS</th><th>WORKROOM</th></tr></thead>
+      <tbody>
+        <tr><td>Project communication</td><td>Buried in chats</td><td>Inside each project</td></tr>
+        <tr><td>File versions</td><td>Easy to lose</td><td class="tick">Versioned & previewable</td></tr>
+        <tr><td>Approvals</td><td>“I thought you said okay”</td><td class="tick">Recorded approvals</td></tr>
+        <tr><td>Payment status</td><td>Manual follow-ups</td><td class="tick">Visible project status</td></tr>
+        <tr><td>Milestones</td><td>Spread across tools</td><td class="tick">Built into the project</td></tr>
+        <tr><td>Client updates</td><td>Messages get buried</td><td class="tick">Organized updates</td></tr>
+        <tr><td>Final delivery</td><td>Links + messages</td><td class="tick">Dedicated delivery package</td></tr>
+        <tr><td>Your branding</td><td>Depends on the tool</td><td class="tick">White-label ready</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
 
-        // ============ 3D SCENE ============
-        const canvas = document.getElementById('three-canvas');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+<section class="section">
+<div class="container">
+  <div class="section-kicker reveal">06 — customer proof</div>
+  <h2 class="section-title reveal">Real people. <em>Real proof.</em></h2>
+  <p class="section-lead reveal">This page intentionally does not manufacture reviews. When verified customers start using Workroom, their words belong here.</p>
+  <div class="reviews">
+    <article class="review reveal"><div class="stars">★★★★★</div><p>“Your first verified customer story goes here—focused on a measurable change in client communication, approvals, follow-ups or delivery.”</p><b>Verified Workroom customer</b><span>Customer story placeholder</span></article>
+    <article class="review reveal"><div class="stars">★★★★★</div><p>“Your second customer story goes here—ideally with a concrete before/after moment instead of generic praise.”</p><b>Verified Workroom customer</b><span>Customer story placeholder</span></article>
+  </div>
+</div>
+</section>
 
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        camera.position.z = 35;
+<section class="section">
+<div class="container">
+  <div class="section-kicker reveal">07 — more control</div>
+  <h2 class="section-title reveal">Go beyond the basics.</h2>
+  <p class="section-lead reveal">Once the core workflow is organized, Workroom gives you more ways to make the client experience feel polished.</p>
+  <div class="cross">
+    <article class="cross-card reveal"><div class="num">01</div><h4>White-label your workspace</h4><p>Use your own logo, colors and domain so clients see your brand—not another software company.</p></article>
+    <article class="cross-card reveal"><div class="num">02</div><h4>Deliver projects professionally</h4><p>Send final files, source code, APKs, hosting details and credentials through a secure delivery package.</p></article>
+    <article class="cross-card reveal"><div class="num">03</div><h4>Turn activity into reports</h4><p>Track progress, productivity metrics and project analytics with exportable reports.</p></article>
+    <article class="cross-card reveal"><div class="num">04</div><h4>Keep private notes private</h4><p>Maintain agency-only notes without exposing internal context to clients.</p></article>
+  </div>
+</div>
+</section>
 
-        const shapes = [];
-        const geometries = [
-            new THREE.IcosahedronGeometry(0.9, 0),
-            new THREE.OctahedronGeometry(0.75, 0),
-            new THREE.TetrahedronGeometry(0.65, 0),
-            new THREE.TorusGeometry(0.55, 0.18, 10, 14),
-            new THREE.TorusKnotGeometry(0.5, 0.15, 60, 10),
-        ];
+<section class="section" id="faq">
+<div class="container">
+  <div class="section-kicker reveal">08 — answers</div>
+  <h2 class="section-title reveal">Questions belong <em>after the evidence.</em></h2>
+  <div class="faq">
+    <div class="faq-item"><button class="faq-q">Is Workroom only for agencies?<span>＋</span></button><div class="faq-a"><div>No. It is designed for agencies and freelancers who manage client projects and want one place for communication, files, approvals, payments and delivery.</div></div></div>
+    <div class="faq-item"><button class="faq-q">Can Workroom run on shared hosting?<span>＋</span></button><div class="faq-a"><div>Yes. Workroom is designed to run on standard shared hosting as well as VPS environments.</div></div></div>
+    <div class="faq-item"><button class="faq-q">Do I need expensive third-party tools?<span>＋</span></button><div class="faq-a"><div>No mandatory paid third-party dependency is required just to get the product live.</div></div></div>
+    <div class="faq-item"><button class="faq-q">Can I use my own branding?<span>＋</span></button><div class="faq-a"><div>Yes. Workroom supports a white-label approach, including your logo, colors and domain.</div></div></div>
+    <div class="faq-item"><button class="faq-q">Can clients approve or request changes?<span>＋</span></button><div class="faq-a"><div>Yes. Clients can approve deliverables or send them back with comments, while change requests can be approved or rejected with a reason.</div></div></div>
+    <div class="faq-item"><button class="faq-q">Can I track project progress automatically?<span>＋</span></button><div class="faq-a"><div>Yes. Project health can be calculated from progress against the deadline and shown as on-track, at-risk or delayed, with team override available.</div></div></div>
+    <div class="faq-item"><button class="faq-q">What happens during final delivery?<span>＋</span></button><div class="faq-a"><div>Workroom includes a secure delivery package for final assets and sensitive project information such as source code, APKs and hosting details.</div></div></div>
+  </div>
+</div>
+</section>
 
-        for (let i = 0; i < 50; i++) {
-            const geo = geometries[Math.floor(Math.random() * geometries.length)];
-            const isYellow = Math.random() > 0.85;
-            const mat = new THREE.MeshBasicMaterial({
-                color: isYellow ? 0xFFD400 : (Math.random() > 0.6 ? 0x5AD363 : 0x3fa848),
-                wireframe: Math.random() > 0.45,
-                transparent: true,
-                opacity: 0.12 + Math.random() * 0.35,
-            });
-            const shape = new THREE.Mesh(geo, mat);
-            shape.position.x = (Math.random() - 0.5) * 55;
-            shape.position.y = (Math.random() - 0.5) * 55;
-            shape.position.z = (Math.random() - 0.5) * 25;
-            shape.rotation.x = Math.random() * Math.PI * 2;
-            shape.rotation.y = Math.random() * Math.PI * 2;
-            shape.userData = {
-                rx: (Math.random() - 0.5) * 0.012,
-                ry: (Math.random() - 0.5) * 0.012,
-                rz: (Math.random() - 0.5) * 0.006,
-                fs: 0.002 + Math.random() * 0.01,
-                fr: 1.5 + Math.random() * 10,
-                iy: shape.position.y,
-            };
-            shapes.push(shape);
-            scene.add(shape);
-        }
+<section class="final-cta" id="early-access">
+<div class="container">
+  <div class="cta-card reveal">
+    <div class="section-kicker" style="color:#767169">early access</div>
+    <h2>Give your clients a room, not a group chat.</h2>
+    <p>Workroom is opening to a limited number of agencies first. Leave your email and we’ll reach out when your spot is ready.</p>
+    <form class="cta-form" onsubmit="event.preventDefault(); alert('Thanks — your early access request has been captured in this demo. Connect this form to your backend or Supabase.');">
+      <input type="email" placeholder="you@agency.com" required><button class="btn btn-primary" type="submit">Request Early Access ↗</button>
+    </form>
+    <div class="fine">One project. One shared room. Far less chaos.</div>
+  </div>
+</div>
+</section>
+</main>
 
-        const pGeo = new THREE.BufferGeometry();
-        const pCount = 150;
-        const pPos = new Float32Array(pCount * 3);
-        for (let i = 0; i < pCount * 3; i += 3) {
-            pPos[i] = (Math.random() - 0.5) * 65;
-            pPos[i + 1] = (Math.random() - 0.5) * 65;
-            pPos[i + 2] = (Math.random() - 0.5) * 35;
-        }
-        pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-        const pMat = new THREE.PointsMaterial({
-            color: 0x5AD363,
-            size: 0.2,
-            transparent: true,
-            opacity: 0.5,
-        });
-        const particles = new THREE.Points(pGeo, pMat);
-        scene.add(particles);
+<footer class="footer"><div class="container footer-inner"><div>© 2026 workroom. Built by Abdul Hannan.</div><div>Projects · Milestones · Files · Payments · Approvals · Chat</div></div></footer>
 
-        const glowGeo = new THREE.SphereGeometry(18, 40, 40);
-        const glowMat = new THREE.MeshBasicMaterial({
-            color: 0x5AD363,
-            transparent: true,
-            opacity: 0.025,
-            side: THREE.BackSide,
-        });
-        const glow = new THREE.Mesh(glowGeo, glowMat);
-        scene.add(glow);
+<script>
+const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
-        let mx = 0, my = 0;
-        document.addEventListener('mousemove', (e) => {
-            mx = (e.clientX / window.innerWidth - 0.5) * 2;
-            my = (e.clientY / window.innerHeight - 0.5) * 2;
-        });
+const dash=document.getElementById('dash');
+window.addEventListener('pointermove',e=>{
+  const r=window.innerWidth, c=window.innerHeight;
+  const x=(e.clientX/r-.5)*2, y=(e.clientY/c-.5)*2;
+  if(window.innerWidth>900) dash.style.transform=`rotateX(${18-y*5}deg) rotateY(${-18+x*7}deg) rotateZ(${4+x*1.5}deg)`;
+},{passive:true});
 
-        function animate() {
-            requestAnimationFrame(animate);
-            const t = Date.now() * 0.001;
-            shapes.forEach(s => {
-                s.rotation.x += s.userData.rx;
-                s.rotation.y += s.userData.ry;
-                s.rotation.z += s.userData.rz;
-                s.position.y = s.userData.iy + Math.sin(t * s.userData.fs) * s.userData.fr;
-            });
-            particles.rotation.y += 0.0004;
-            particles.rotation.x += 0.00015;
-            glow.position.x += (mx * 6 - glow.position.x) * 0.015;
-            glow.position.y += (-my * 6 - glow.position.y) * 0.015;
-            camera.position.x += (mx * 4 - camera.position.x) * 0.015;
-            camera.position.y += (-my * 4 - camera.position.y) * 0.015;
-            camera.lookAt(scene.position);
-            renderer.render(scene, camera);
-        }
-        animate();
+document.querySelectorAll('.step').forEach(step=>{
+  step.addEventListener('click',()=>{
+    document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+    step.classList.add('active');
+    const i=step.dataset.step;
+    const names=['Northstar / Overview','Northstar / Milestones','Northstar / Files + Approvals','Northstar / Payments + Chat','Northstar / Delivery'];
+    const metrics=['ON TRACK','74% COMPLETE','08 / 09 APPROVED','₨180K PAID','READY TO SHIP'];
+    document.getElementById('flowName').textContent=names[i];
+    document.getElementById('flowMetric').textContent=metrics[i];
+  })
+});
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        // ============ MOBILE MENU ============
-        document.getElementById('menuToggle').addEventListener('click', () => {
-            document.getElementById('mobileMenu').classList.toggle('hidden');
-        });
-        document.querySelectorAll('#mobileMenu a').forEach(link => {
-            link.addEventListener('click', () => {
-                document.getElementById('mobileMenu').classList.add('hidden');
-            });
-        });
-
-        // ============ SCROLL REVEAL ============
-        const revealEls = document.querySelectorAll('.reveal');
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-        revealEls.forEach(el => observer.observe(el));
-        document.querySelector('.hero-section .reveal')?.classList.add('visible');
-    </script>
+document.querySelectorAll('.faq-q').forEach(btn=>{
+  btn.addEventListener('click',()=>btn.parentElement.classList.toggle('open'));
+});
+</script>
 </body>
 </html>
